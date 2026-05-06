@@ -1,0 +1,12 @@
+username=张三中文用户
+password=zh_pass_123
+card_subject=数学
+card_chapter=函数
+card_title=函数定义
+card_front=什么是函数？
+card_back=每个输入只对应一个输出
+card_tags=中文标签
+wrong_question=若 x=3，2x 等于多少？
+wrong_correct=6
+wrong_answer=5
+wrong_reason=把乘法看成了加法
