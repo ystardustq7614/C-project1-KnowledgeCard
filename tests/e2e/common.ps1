@@ -3,10 +3,14 @@ $script:E2EProjectRootFull = [System.IO.Path]::GetFullPath($script:E2EProjectRoo
 $script:E2ETmpParent = Join-Path $script:E2EProjectRoot ".test_tmp"
 
 <#
-模块职责：
-- 为 tests/e2e 下的分支回归脚本提供统一路径保护、临时数据初始化、程序调用和数据断言 helper。
+[导读]
+- 本 helper 为 tests/e2e 下的分支回归脚本提供统一路径保护、临时数据初始化、程序调用和数据断言。
 
-关键约束：
+[输入输出]
+- 输入：case 名称、fixture/临时目录、主程序路径和交互输入。
+- 输出：隔离数据目录、程序输出文件、解析后的文本记录字段。
+
+[易错点]
 - 所有删除操作必须先确认目标仍在项目根目录内，避免测试清理误删用户目录。
 - helper 返回的是文本文件字段数组，调用方需要按存储格式字段顺序断言。
 - 解码逻辑必须与 storage.cpp 的百分号转义规则保持一致。
@@ -14,7 +18,7 @@ $script:E2ETmpParent = Join-Path $script:E2EProjectRoot ".test_tmp"
 
 function Write-E2EStep {
     param([string]$Message)
-    Write-Host "[v1.3.7] $Message"
+    Write-Host "[v1.4.0] $Message"
 }
 
 function Assert-PathInsideProject {

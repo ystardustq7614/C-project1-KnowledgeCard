@@ -5,10 +5,14 @@ param(
 )
 
 <#
-脚本职责：
-- 覆盖用户分支：注册、错误登录、正确登录、修改密码、旧密码失败、新密码成功。
+[导读]
+- 本脚本覆盖用户分支：注册、错误登录、正确登录、修改密码、旧密码失败、新密码成功。
 
-关键约束：
+[输入输出]
+- 输入：菜单输入序列。
+- 输出：users.txt 字段断言和 case 退出码。
+
+[易错点]
 - 断言以 users.txt 为准，确认改密真正持久化且未产生重复用户记录。
 - 输入序列中的空字符串对应 pauseScreen 或返回菜单，不能随意删除。
 #>
@@ -80,7 +84,7 @@ try {
     $userParts = Get-RequiredLine `
         -Path $usersFile `
         -Predicate { param($parts) $parts.Count -ge 4 -and (Decode-StorageField $parts[1]) -eq "v135_user" } `
-        -FailureMessage "v1.3.7 user not found"
+        -FailureMessage "v1.4.0 user not found"
 
     Assert-Equal -Label "user password changed" -Actual (Decode-StorageField $userParts[2]) -Expected "updated_pass"
     Assert-True -Label "single user record kept" -Condition ((Get-RecordLines $usersFile).Count -eq 1)

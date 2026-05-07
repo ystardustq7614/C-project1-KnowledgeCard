@@ -5,9 +5,21 @@
 using namespace std;
 
 /*
-实现说明：
-- 衰减只在逾期足够明显时触发，避免用户晚一两天复习就被反复扣分。
-- 掌握度下限保留到 30，是为了让旧知识重新进入复习队列，而不是把记录打成“不可恢复”状态。
+[导读]
+- 本文件计算“记录逾期后是否需要记忆衰减”，调用方是 main.cpp 登录后的 applyGlobalDecay()。
+
+[输入输出]
+- 输入：当前掌握度、当前复习间隔、下次复习日期、今天日期。
+- 输出：DecayResult；不直接修改卡片/错题，也不保存文件。
+
+[学习重点]
+- 逾期天数来自 date_utils 的真实公历日期差，不再使用按月份近似的算法。
+
+[简化说明]
+- 衰减采用线性扣分和间隔减半，便于教学解释；真实系统可能会按材料类型、历史表现和难度动态调整。
+
+[实验]
+- 把宽限期从 3 天改成 1 天，再运行算法测试观察逾期边界如何变化。
 */
 DecayResult calculateDecay(int currentMastery, int currentInterval, const string& nextReviewDate, const string& todayDate) {
     DecayResult res;

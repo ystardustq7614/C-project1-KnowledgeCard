@@ -10,12 +10,26 @@
 using namespace std;
 
 /*
-模块职责：
-- 负责错题的交互式管理，并把错题与知识卡片联动起来。
+[导读]
+- 本文件负责错题的交互式管理，也是“错题 -> 知识卡片”跨模块联动的主要入口。
 
-关键约束：
-- currentWrongMap 保存展示序号到 wrongs 下标的快照，底层 wrongId 仍用于持久化和关联。
-- 错题转卡片需要同时写 cards.txt 和 wrongs.txt，任何一侧变更都要保持 linkedCardId 可追踪。
+[对应流程图]
+- 错题 CRUD：控制台输入 -> WrongQuestion 字段变化 -> saveWrongs()。
+- 错题转卡片：WrongQuestion -> 新 Card -> linkedCardId 回写 -> saveCards()/saveWrongs()。
+
+[输入输出]
+- 输入：当前登录用户、控制台字段输入、wrongs/cards 全局容器。
+- 输出：wrongs.txt、必要时 cards.txt、控制台列表。
+
+[学习重点]
+- currentWrongMap 保存的是“展示序号 -> wrongs 下标”，底层 wrongId 仍用于文件和关联。
+- linkedCardId 是跨文件关联字段，维护模块会检查它是否仍指向当前用户可见卡片。
+
+[易错点]
+- 错题转卡片必须同时保存 cards.txt 和 wrongs.txt，否则 linkedCardId 会指向不存在或未落盘的卡片。
+
+[实验]
+- 转换一条错题后手动把目标卡片 active 改成 0，再运行 --check-data 观察关联修复提示。
 */
 
 // ========== 表现层映射 ==========

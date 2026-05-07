@@ -4,15 +4,17 @@
 #include <string>
 
 /*
-模块职责：
-- 管理文本数据目录、四类数据文件的初始化、加载、保存和自增编号生成。
+[导读]
+- 本头文件声明项目的持久化边界：数据目录、文件初始化、加载、保存和自增编号。
 
-不负责：
-- 不判断当前登录用户权限，不做业务合法性修复；数据一致性修复由 maintenance.cpp 负责。
+[输入输出]
+- 输入：data 目录下的文本文件，以及全局 users/cards/wrongs/logs 容器。
+- 输出：加载后的内存容器，或保存后的 users.txt/cards.txt/wrongs.txt/review_logs.txt。
 
-关键约束：
+[易错点]
+- 本模块不判断当前登录用户权限，也不做业务合法性修复；数据一致性修复由 maintenance.cpp 负责。
 - 存储格式是一行一条记录，字段使用 | 分隔；字段顺序是兼容旧数据和测试 fixture 的契约。
-- 数据目录优先级由 main.cpp 组织：命令行 --data-dir > PROJECT1_DATA_DIR > 默认 data。
+- 数据目录优先级由 main.cpp 组织：--data-dir > PROJECT1_DATA_DIR > 默认 data。
 */
 
 // 功能：对业务文本做百分号转义，保证字段内的 |、换行和 % 不破坏一行记录格式。

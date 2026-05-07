@@ -13,7 +13,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\run_all_tests.ps1
 全部通过时，脚本返回退出码 `0`，并输出：
 
 ```text
-[v1.3.7] All tests passed
+[v1.4.0] All tests passed
 ```
 
 如果总入口失败，再按下面的测试分层单独运行对应脚本。

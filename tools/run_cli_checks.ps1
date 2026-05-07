@@ -5,11 +5,15 @@ param(
 )
 
 <#
-脚本职责：
-- 验证 --check-data、--fix、--user-id、PROJECT1_DATA_DIR 和参数错误退出码。
+[导读]
+- 本脚本验证 --check-data、--fix、--user-id、PROJECT1_DATA_DIR 和参数错误退出码。
 
-关键约束：
-- 每个 case 从 tests/fixtures 复制到 .test_tmp/cli_checks 下运行，避免污染真实 data/。
+[输入输出]
+- 输入：tests/fixtures 下的样例数据。
+- 输出：.test_tmp/cli_checks 下的隔离运行目录，以及主程序退出码断言。
+
+[易错点]
+- 每个 case 必须复制到临时目录后运行，避免污染真实 data/。
 - 自动修复测试不仅检查退出码，还检查 linkedCardId 等关键字段是否被实际归正。
 - 退出码是 CLI 契约的一部分，不能只看输出文本。
 #>
@@ -24,7 +28,7 @@ $fixtureRoot = Join-Path $projectRoot "tests\fixtures"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.7] $Message"
+    Write-Host "[v1.4.0] $Message"
 }
 
 function Assert-PathInsideProject {

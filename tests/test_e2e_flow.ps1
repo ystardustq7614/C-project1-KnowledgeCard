@@ -5,10 +5,14 @@ param(
 )
 
 <#
-脚本职责：
-- 从空数据目录跑通核心业务主链路：注册、登录、新增卡片、新增错题、错题转卡片、数据一致性检查。
+[导读]
+- 本脚本从空数据目录跑通核心业务主链路：注册、登录、新增卡片、新增错题、错题转卡片、数据一致性检查。
 
-关键约束：
+[输入输出]
+- 输入：脚本生成的交互式菜单文本。
+- 输出：临时 data/*.txt 文件和 --check-data 退出码。
+
+[易错点]
 - 该脚本验证“完整业务闭环”，不是覆盖所有菜单分支；细分分支由 tests/e2e/*.ps1 覆盖。
 - 输入文本必须包含每个 pauseScreen 所需空行，否则后续菜单选择会整体错位。
 - 数据断言以持久化文件为准，确保交互结束后数据真正落盘。
@@ -27,7 +31,7 @@ $outputFile = Join-Path $tmpRoot "e2e_output.log"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.7] $Message"
+    Write-Host "[v1.4.0] $Message"
 }
 
 function Assert-PathInsideProject {

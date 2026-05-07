@@ -6,10 +6,14 @@ param(
 )
 
 <#
-脚本职责：
-- 汇总所有交互式 E2E case，覆盖核心主链路、中文输入和主要菜单分支。
+[导读]
+- 本脚本汇总所有交互式 E2E case，覆盖核心主链路、中文输入和主要菜单分支。
 
-关键约束：
+[输入输出]
+- 输入：已构建或待构建的 project1.exe，以及各 E2E 分支脚本。
+- 输出：每个 case 的临时 data 目录和汇总退出码。
+
+[易错点]
 - 默认只构建一次主程序，然后把已解析 exe 路径传给各 case，避免重复编译造成定位噪声。
 - 每个 case 必须使用自己的临时 data 目录；case 之间不能共享运行状态。
 - -KeepTemp 用于失败排查，正常运行结束后应清理 .test_tmp。
@@ -23,7 +27,7 @@ $tmpParent = Join-Path $projectRoot ".test_tmp"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.7] $Message"
+    Write-Host "[v1.4.0] $Message"
 }
 
 function Assert-PathInsideProject {

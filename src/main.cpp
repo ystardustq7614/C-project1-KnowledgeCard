@@ -19,12 +19,26 @@
 using namespace std;
 
 /*
-模块职责：
-- 定义全局运行状态，处理命令行入口，组织欢迎菜单、登录后主菜单、登录后的衰减扫描和推荐展示。
+[导读]
+- 本文件是程序总入口，建议在读完 models.h/globals.h 后阅读。
+- 它把“启动 -> 数据加载 -> 登录/注册 -> 主菜单 -> 各业务模块”串成完整运行路径。
 
-关键约束：
-- main.cpp 负责决定数据目录优先级：命令行 --data-dir > PROJECT1_DATA_DIR > 默认 data。
-- 交互路径和 --check-data 非交互路径共用同一套加载逻辑，保证测试与实际运行的数据格式一致。
+[对应流程图]
+- 启动层：main()
+- 入口菜单：showWelcomeMenu()
+- 登录后业务分发：showMainMenu()
+- 登录后自动处理：applyGlobalDecay() 与 displayRecommendations()
+
+[输入输出]
+- 输入：命令行参数、环境变量 PROJECT1_DATA_DIR、控制台菜单输入。
+- 输出：加载后的全局容器状态、控制台页面、必要时写回 data/*.txt。
+
+[易错点]
+- 数据目录优先级固定为：--data-dir > PROJECT1_DATA_DIR > 默认 data。
+- 交互路径和 --check-data 路径必须共用 loadAllData()，否则测试数据格式可能与真实运行脱节。
+
+[实验]
+- 改变 --data-dir 的传入目录，再运行 --check-data，观察程序是否完全切换到新的数据目录。
 */
 
 // ========== 全局容器定义 ==========
@@ -51,6 +65,7 @@ struct CliOptions {
     string errorMessage;    // 不合法时的错误信息
 };
 
+// [导读] 帮助文本既服务人工运行，也服务测试脚本校验 CLI 行为边界。
 static void printCliUsage() {
     cout << "用法：\n";
     cout << "  project1.exe [--data-dir <path>]\n";//交互式运行
@@ -68,6 +83,7 @@ static void printCliUsage() {
     cout << "  2  命令行参数错误\n";
 }
 
+// [输入输出] 输入 argv，输出结构化 CliOptions；这里不初始化文件，只做参数解释和合法性判断。
 static CliOptions parseCliOptions(int argc, char* argv[]) {
     CliOptions options;
     // CLI 支持空格和等号两种写法，便于脚本调用和人工调试共享同一入口。
@@ -179,6 +195,17 @@ int main(int argc, char* argv[]) {
 
 // 登录成功后执行一次全局衰减扫描。
 // 副作用：仅当存在衰减记录时保存 cards.txt/wrongs.txt，避免无变化时反复写盘。
+/*
+[学习重点]
+- 这是登录后的状态扫描：不新建记录，只根据逾期情况调整当前用户的掌握度和间隔。
+
+[输入输出]
+- 输入：当前用户的 active 卡片/错题、今天日期。
+- 输出：被衰减记录的新 mastery/intervalDays；有变化时保存 cards.txt 和 wrongs.txt。
+
+[易错点]
+- 必须按 currentUserId 过滤，否则一个用户登录会影响其他用户数据。
+*/
 void applyGlobalDecay() {
     string today = getTodayDate();
     int decayCount = 0;
@@ -213,6 +240,14 @@ void applyGlobalDecay() {
 }
 
 // 主菜单展示推荐只读内存数据，不写入日志；推荐结果是当前时刻快照。
+/*
+[学习重点]
+- 推荐展示是只读快照，把卡片和错题统一成 RecommendInputItem 后交给算法层。
+
+[输入输出]
+- 输入：当前用户有效卡片/错题的 subject、chapter、mastery。
+- 输出：控制台 Top 3 展示；不写日志，不修改任何掌握度。
+*/
 void displayRecommendations() {
     vector<RecommendInputItem> inputs;
     for (const Card& c : cards) {
@@ -240,6 +275,7 @@ void displayRecommendations() {
 
 // ========== 一级菜单 ==========
 
+// [导读] 一级菜单只负责“进入系统或退出”，登录后的业务流程交给 showMainMenu()。
 void showWelcomeMenu() {
     clearScreen();
     cout << ANSI_CYAN << "==========================================\n" << ANSI_RESET;
@@ -287,6 +323,7 @@ void showWelcomeMenu() {
 
 // ========== 登录后主菜单 ==========
 
+// [导读] 登录后所有业务模块从这里分发；新增主功能时通常先在这里接菜单项。
 void showMainMenu() {
     while (currentUserId != -1) {
         clearScreen();

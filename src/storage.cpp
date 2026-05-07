@@ -11,13 +11,24 @@ using namespace std;
 namespace fs = std::filesystem;
 
 /*
-模块职责：
-- 把内存中的 users/cards/wrongs/logs 与 data 目录下的四个文本文件互相转换。
-- 该模块只做格式兼容和基础读写，不承担业务合法性判断。
+[导读]
+- 本文件是“内存容器 <-> data/*.txt”的唯一转换层。
+- 先读 models.h 了解字段，再读本文件看字段如何落到文本文件。
 
-关键约束：
-- 文本格式是一行一条记录，字段顺序就是持久化契约；新增字段必须考虑旧数据兼容。
+[对应流程图]
+- 加载阶段：data/*.txt -> splitLine/decode -> users/cards/wrongs/logs。
+- 保存阶段：users/cards/wrongs/logs -> encode -> data/*.txt。
+
+[输入输出]
+- 输入：全局容器和 data 目录下的四个文本文件。
+- 输出：更新后的全局容器，或覆写后的 users.txt/cards.txt/wrongs.txt/review_logs.txt。
+
+[易错点]
+- 字段顺序就是持久化契约，新增字段必须兼容旧数据和测试 fixture。
 - 写入采用整文件覆写，适合单机教学项目，不支持多进程并发写同一数据目录。
+
+[实验]
+- 在卡片正面输入包含 | 和换行的文本，再观察 cards.txt 中的 %7C/%0A 转义。
 */
 
 // 数据文件路径（默认相对于程序运行目录，可由环境变量或 CLI 覆盖）
@@ -128,6 +139,7 @@ std::string decodeStorageField(const string& value) {
 
 // ========== 加载 ==========
 
+// [输入输出] users.txt 的一行文本被转换为 User；异常短行直接跳过以兼容损坏/旧数据。
 void loadUsers() {
     users.clear();                                  
     ifstream fin(userFile());                       
@@ -151,6 +163,7 @@ void loadUsers() {
     fin.close();
 }
 
+// [输入输出] cards.txt 的字段顺序必须与 Card 结构和 README 数据模型保持一致。
 void loadCards() {
     cards.clear();
     ifstream fin(cardFile());
@@ -187,6 +200,7 @@ void loadCards() {
     fin.close();
 }
 
+// [输入输出] wrongs.txt 同时兼容 v1 旧格式和 v1.1 后含 errorType 的新格式。
 void loadWrongs() {
     wrongs.clear();
     ifstream fin(wrongFile());
@@ -240,6 +254,7 @@ void loadWrongs() {
     fin.close();
 }
 
+// [输入输出] review_logs.txt 只负责还原审计日志，不校验 itemId 当前是否仍存在。
 void loadLogs() {
     logs.clear();
     ifstream fin(logFile());
@@ -271,6 +286,7 @@ void loadLogs() {
 
 // ========== 保存 ==========
 
+// [输入输出] User -> users.txt；保存前编码用户名和密码，避免分隔符破坏字段切分。
 void saveUsers() {
     string path = userFile();
     ofstream fout(path);
@@ -287,6 +303,7 @@ void saveUsers() {
     fout.close();
 }
 
+// [输入输出] Card -> cards.txt；长文本字段必须先 encodeStorageField，再写入一行记录。
 void saveCards() {
     string path = cardFile();
     ofstream fout(path);
@@ -316,6 +333,7 @@ void saveCards() {
     fout.close();
 }
 
+// [输入输出] WrongQuestion -> wrongs.txt；当前始终保存含 errorType 的新格式。
 void saveWrongs() {
     string path = wrongFile();
     ofstream fout(path);
@@ -346,6 +364,7 @@ void saveWrongs() {
     fout.close();
 }
 
+// [输入输出] ReviewLog -> review_logs.txt；日志保存当前结果，不重新计算复习状态。
 void saveLogs() {
     string path = logFile();
     ofstream fout(path);
@@ -370,6 +389,7 @@ void saveLogs() {
 
 // ========== 整体加载 / 保存 ==========
 
+// [导读] 启动时集中加载，保证所有业务模块看到的是同一批全局内存数据。
 void loadAllData() {
     loadUsers();
     loadCards();
@@ -377,6 +397,7 @@ void loadAllData() {
     loadLogs();
 }
 
+// [导读] 退出或兜底保存时集中写回；多数业务操作仍会在修改后即时保存对应文件。
 void saveAllData() {
     saveUsers();
     saveCards();
@@ -386,6 +407,7 @@ void saveAllData() {
 
 // ========== 编号生成 ==========
 
+// [易错点] ID 使用最大值 + 1，不复用删除记录的旧 ID，避免日志和关联字段混淆。
 int getNextUserId() {
     int maxId = 0;
     for (const User& u : users) {

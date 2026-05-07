@@ -8,12 +8,25 @@
 #include <algorithm>
 
 /*
-模块职责：
-- 将卡片和错题统一抽象为 ReviewTask，完成“生成待复习列表 -> 用户复习 -> 更新状态 -> 写日志”的闭环。
+[导读]
+- 本文件是学习系统的主闭环：生成待复习列表、执行复习、更新状态、写入复习日志。
 
-关键约束：
-- generateTodayTasks 返回的是当前时刻快照；真正复习前仍会再次按 itemId/currentUserId/active 查找对象。
-- 复习日志用于审计和统计，不作为恢复卡片/错题当前状态的来源。
+[对应流程图]
+- Card/WrongQuestion -> ReviewTask -> 用户评分 -> algo_sm2 -> 回写 Card/WrongQuestion -> ReviewLog。
+
+[输入输出]
+- 输入：当前用户的有效卡片/错题、今天日期、用户评分 1/2/3。
+- 输出：新的 mastery/intervalDays/nextReviewDate、review_logs.txt、控制台复习结果。
+
+[学习重点]
+- ReviewTask 是运行时快照，不落盘；真正复习前还要按 itemId/currentUserId/active 再查一次对象。
+- 复习日志只用于审计和统计，不反向恢复卡片/错题当前状态。
+
+[易错点]
+- 卡片和错题共用同一套评分语义，不能让 ReviewLog.result 出现两套含义。
+
+[实验]
+- 修改 calcTaskPriority() 中 wrongBonus 的值，观察今日复习列表中错题和卡片排序如何变化。
 */
 
 // ================================================================
@@ -23,6 +36,7 @@
 // 优先级公式：priority = overdueDays * 10 + wrongBonus + (100 - mastery)
 // wrongBonus: 错题 = 20, 卡片 = 0
 // 次级排序：dueDate 更早优先
+// [公式对应] priority = overdueDays * 10 + wrongBonus + (100 - mastery)。
 static int calcTaskPriority(const string& itemType, const string& dueDate, int mastery) {
     string today = getTodayDate();
     int overdueDays = daysBetween(dueDate, today);
@@ -33,6 +47,7 @@ static int calcTaskPriority(const string& itemType, const string& dueDate, int m
     return overdueDays * 10 + wrongBonus + (100 - mastery);
 }
 
+// [输入输出] 当前用户 Card/WrongQuestion -> 已按优先级排序的 ReviewTask 列表。
 vector<ReviewTask> generateTodayTasks() {
     vector<ReviewTask> tasks;
     string today = getTodayDate();
@@ -115,6 +130,7 @@ void showTodayTasks() {
 // 复习单个卡片
 // ================================================================
 
+// [学习重点] 单张卡片复习会同时更新卡片状态和追加一条 ReviewLog。
 static void reviewOneCard(int cardIndex) {
     Card& c = cards[cardIndex];
 
@@ -174,6 +190,7 @@ static void reviewOneCard(int cardIndex) {
 // 复习单个错题
 // ================================================================
 
+// [学习重点] 单道错题复习复用卡片同一套算法，保证两类材料调度口径一致。
 static void reviewOneWrong(int wrongIndex) {
     WrongQuestion& w = wrongs[wrongIndex];
 

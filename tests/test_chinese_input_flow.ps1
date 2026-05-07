@@ -5,11 +5,15 @@ param(
 )
 
 <#
-脚本职责：
-- 使用 UTF-8 fixture 验证中文注册、登录、卡片、错题和错题转卡片内容可正确落盘。
+[导读]
+- 本脚本使用 UTF-8 fixture 验证中文注册、登录、卡片、错题和错题转卡片内容可正确落盘。
 
-关键约束：
-- 中文输入从 tests/fixtures/e2e_inputs 读取，避免 PowerShell 脚本源码编码影响测试数据。
+[输入输出]
+- 输入：tests/fixtures/e2e_inputs 下的中文业务流程和预期字段。
+- 输出：临时 data/*.txt、程序输出日志和中文字段断言。
+
+[易错点]
+- 中文输入从 fixture 读取，避免 PowerShell 脚本源码编码影响测试数据。
 - 断言必须先解码存储字段，再与 expected fixture 比较。
 - 该脚本覆盖中文链路，不负责穷举所有菜单分支。
 #>
@@ -28,7 +32,7 @@ $expectedFixture = Join-Path $fixtureDir "chinese_expected_fields.txt"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.7] $Message"
+    Write-Host "[v1.4.0] $Message"
 }
 
 function Assert-PathInsideProject {

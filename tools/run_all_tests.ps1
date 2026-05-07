@@ -5,10 +5,14 @@ param(
 )
 
 <#
-脚本职责：
-- 作为项目总验收入口，串联主程序编译、CLI 数据检查、算法单元测试和 E2E 回归。
+[导读]
+- 本脚本是项目总验收入口，串联主程序编译、CLI 数据检查、算法单元测试和 E2E 回归。
 
-关键约束：
+[输入输出]
+- 输入：源码、测试 fixture 和可选 ExePath/Compiler/KeepTemp 参数。
+- 输出：project1.exe、测试阶段输出和最终退出码。
+
+[易错点]
 - 默认清理 .test_tmp，保证每次测试从干净临时数据开始；传入 -KeepTemp 时保留现场用于排查。
 - 所有子测试必须使用独立 --data-dir 或临时目录，不能读写真实 data/。
 - 任一步失败都抛出异常并返回非 0，便于 CI 或人工脚本判断。
@@ -22,7 +26,7 @@ $tmpParent = Join-Path $projectRoot ".test_tmp"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.7] $Message"
+    Write-Host "[v1.4.0] $Message"
 }
 
 function Assert-PathInsideProject {

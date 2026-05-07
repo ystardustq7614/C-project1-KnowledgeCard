@@ -4,10 +4,14 @@ param(
 )
 
 <#
-脚本职责：
-- 编译并运行日期工具测试和算法纯函数测试。
+[导读]
+- 本脚本编译并运行日期工具测试和算法纯函数测试。
 
-关键约束：
+[输入输出]
+- 输入：tests/test_date_utils.cpp、tests/test_algorithms.cpp 和 src/algo_*/date_utils 源码。
+- 输出：.test_tmp/algorithm_tests 下的临时测试程序和测试退出码。
+
+[易错点]
 - 测试程序编译到 .test_tmp/algorithm_tests，不能与主程序或真实数据目录耦合。
 - 算法测试只链接 algo_* 和 date_utils，不链接 main/storage，保证纯函数层没有隐藏全局依赖。
 #>
@@ -23,7 +27,7 @@ $algorithmTestExe = Join-Path $tmpRoot "test_algorithms.exe"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.7] $Message"
+    Write-Host "[v1.4.0] $Message"
 }
 
 function Assert-PathInsideProject {

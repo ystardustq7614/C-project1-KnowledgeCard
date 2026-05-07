@@ -5,19 +5,26 @@
 using namespace std;
 
 /*
-模块职责：
-- 定义项目跨模块共享的数据模型，保持“数据结构”和“业务操作”分离。
+[导读]
+- 本文件是全项目的数据字典，建议作为源码阅读第一站。
+- 这里只定义“数据长什么样”，不处理菜单、文件、算法和输入校验。
 
-不负责：
-- 不在模型层做文件读写、输入校验、复习算法或菜单交互。
+[对应流程图]
+- User：账号与登录状态的来源。
+- Card / WrongQuestion：学习材料主体，流向卡片管理、错题管理、复习、推荐和统计。
+- ReviewLog：复习动作审计记录，流向统计与历史查看。
+- ReviewTask：今日复习的运行时中间表示，不落盘。
 
-关键约束：
-- 这些结构会被 storage.cpp 直接序列化到文本文件，字段顺序变化必须同步修改加载/保存逻辑和测试 fixture。
-- 日期字段统一使用 YYYY-MM-DD 字符串，日期合法性和加减由 date_utils/utils 负责。
+[输入输出]
+- 输入：业务模块创建或修改这些结构体。
+- 输出：storage.cpp 按字段顺序把结构体保存到 data/*.txt。
+
+[易错点]
+- 字段顺序是持久化契约。新增、删除或调整字段时，必须同步 storage.cpp、fixture 和 README 的数据格式说明。
+- 日期统一使用 YYYY-MM-DD 字符串；日期计算不要在模型层完成。
 */
 
-// 表示：本地账号。
-// 注意：当前是教学/MVP 项目，密码明文存储；不适合作为真实账号系统复用。
+// [简化说明] 本地账号只为教学闭环服务，密码明文存储，不适合作为真实账号系统复用。
 struct User {
     int userId;             // 自增整数 ID（注册时分配）
     string username;        // 登录名
@@ -25,8 +32,11 @@ struct User {
     string createDate;      // "YYYY-MM-DD" 格式的创建日期
 };
 
-// 表示：一个可复习的知识点卡片。
-// 用途：同时支撑卡片管理、今日复习、薄弱点推荐、统计分析和数据维护。
+/*
+[学习重点]
+- Card 是“知识卡片”在代码里的核心表示。
+- 它既包含正反面内容，也包含复习调度所需的 mastery、intervalDays、nextReviewDate。
+*/
 struct Card {
 
     //身份与分类
@@ -54,8 +64,13 @@ struct Card {
     bool active;            // 是否启用（false = 停用，相当于软删除————不想删记录但也不再使用，设为 false 即可）
 };
 
-// 表示：一个独立错题记录，也可通过 linkedCardId 关联到由错题生成的知识卡片。
-// 注意：linkedCardId = -1 表示未关联；关联有效性由 maintenance.cpp 检查和修复。
+/*
+[学习重点]
+- WrongQuestion 是错题记录，也可通过 linkedCardId 关联到“错题转卡片”生成的 Card。
+
+[易错点]
+- linkedCardId = -1 表示未关联；非 -1 也不一定有效，关联有效性由 maintenance.cpp 检查和修复。
+*/
 struct WrongQuestion {
     int wrongId;            // 错题唯一 ID
     int userId;             // 所属用户
@@ -79,8 +94,7 @@ struct WrongQuestion {
     bool active;
 };
 
-// 表示：一次复习动作的审计记录。
-// 注意：日志只追加，不反向驱动业务状态；卡片/错题的当前复习状态仍以各自记录为准。
+// [导读] ReviewLog 表示一次复习动作的审计记录；日志只追加，不反向驱动卡片/错题当前状态。
 struct ReviewLog {
     int logId;              // 日志唯一 ID
     int userId;             // 谁复习的
@@ -94,8 +108,8 @@ struct ReviewLog {
     int newMastery;         // 复习后的掌握度
 };
 
-// 表示：今日复习列表中的运行时任务，不落盘。
-// 说明：itemType + itemId 才能唯一定位对象，因为卡片和错题使用不同 ID 空间。
+// [输入输出] ReviewTask 是“卡片/错题 -> 今日复习列表”的中间表示，不保存到文件。
+// [易错点] itemType + itemId 才能唯一定位对象，因为卡片和错题使用不同 ID 空间。
 struct ReviewTask {
     int itemId;         // 卡片/错题的 ID
     string itemType;    // "card" 或 "wrong"
