@@ -7,6 +7,13 @@
 #include "algo_sm2.h"
 #include <algorithm>
 
+using std::cout;
+using std::cin;
+using std::getline;
+using std::sort;
+using std::string;
+using std::vector;
+
 /*
 模块职责：
 - 将卡片和错题统一抽象为 ReviewTask，完成“生成待复习列表 -> 用户复习 -> 更新状态 -> 写日志”的闭环。

@@ -1,7 +1,8 @@
 #include "algo_sm2.h"
 #include <algorithm>
 
-using namespace std;
+using std::max;
+using std::min;
 
 /*
 实现说明：

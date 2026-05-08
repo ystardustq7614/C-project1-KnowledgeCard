@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <string>
-using std::string;
 
 /*
 模块职责：
@@ -39,13 +38,13 @@ void printWrongDetail(int index);
 
 // ========== 错因分类 ==========
 // 返回：空字符串表示用户主动跳过分类，不视为错误。
-string inputErrorType();
-bool isValidErrorType(const string& errorType);
+std::string inputErrorType();
+bool isValidErrorType(const std::string& errorType);
 
 // ========== 错题筛选 ==========
 // 返回：wrongs 全局容器下标，不是 wrongId。
-std::vector<int> filterWrongsBySubject(const string& subject);
-std::vector<int> filterWrongsByChapter(const string& chapter);
+std::vector<int> filterWrongsBySubject(const std::string& subject);
+std::vector<int> filterWrongsByChapter(const std::string& chapter);
 
 // ========== 错题子菜单 ==========
 void showWrongMenu();

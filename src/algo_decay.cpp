@@ -2,7 +2,8 @@
 #include "date_utils.h"
 #include <algorithm>
 
-using namespace std;
+using std::max;
+using std::string;
 
 /*
 实现说明：

@@ -8,7 +8,13 @@
 #include <random>
 #include <chrono>
 
-using namespace std;
+using std::cout;
+using std::cin;
+using std::default_random_engine;
+using std::getline;
+using std::shuffle;
+using std::string;
+using std::vector;
 
 /*
 模块职责：
@@ -62,7 +68,7 @@ void startRandomPractice() {
     }
 
     // 使用时间种子仅满足轻量随机抽查，不用于可复现实验；测试不依赖抽题顺序。
-    unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     shuffle(pool.begin(), pool.end(), default_random_engine(seed));
 
     int correctCount = 0;
@@ -160,7 +166,7 @@ void startWeaknessPractice() {
     string line;
     getline(cin, line);
 
-    unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     shuffle(cardPool.begin(), cardPool.end(), default_random_engine(seed));
 
     int count = cardPool.size();

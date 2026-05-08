@@ -16,7 +16,7 @@
 
 // ========== 今日复习任务 ==========
 // 返回：当前用户所有 nextReviewDate <= 今天的有效卡片和错题，已按优先级排序。
-vector<ReviewTask> generateTodayTasks();
+std::vector<ReviewTask> generateTodayTasks();
 void showTodayTasks();
 
 // ========== 复习流程 ==========
@@ -25,7 +25,7 @@ void startReviewSession();
 
 // ========== 复习日志 ==========
 // 参数：itemType 仅接受 "card" 或 "wrong"，调用方需保证 itemId 属于对应类型。
-void addReviewLog(int itemId, const string& itemType, int result,
+void addReviewLog(int itemId, const std::string& itemType, int result,
                   int oldInterval, int newInterval,
                   int oldMastery, int newMastery);
 void showReviewHistory();

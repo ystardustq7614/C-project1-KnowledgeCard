@@ -5,8 +5,6 @@
 #include <string>
 #include "models.h"
 
-using namespace std;
-
 /*
 模块职责：
 - 暴露进程内共享的业务数据容器和当前登录状态。
@@ -17,13 +15,13 @@ using namespace std;
 */
 
 // 全局数据容器：启动时由 storage.cpp 加载，业务操作后按模块保存。
-extern vector<User> users;
-extern vector<Card> cards;
-extern vector<WrongQuestion> wrongs;
-extern vector<ReviewLog> logs;
+extern std::vector<User> users;
+extern std::vector<Card> cards;
+extern std::vector<WrongQuestion> wrongs;
+extern std::vector<ReviewLog> logs;
 
 // 当前登录状态：currentUserId = -1 表示未登录，业务模块必须据此过滤数据。
 extern int currentUserId;       // 业务判断用，-1 表示未登录
-extern string currentUsername;   // 仅用于界面显示
+extern std::string currentUsername; // 仅用于界面显示
 
 #endif

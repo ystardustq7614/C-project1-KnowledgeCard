@@ -4,7 +4,11 @@
 #include <iostream>
 #include <map>
 
-using namespace std;
+using std::cout;
+using std::cin;
+using std::getline;
+using std::map;
+using std::string;
 
 /*
 模块职责：

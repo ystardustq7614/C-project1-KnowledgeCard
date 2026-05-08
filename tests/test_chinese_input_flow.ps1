@@ -28,7 +28,7 @@ $expectedFixture = Join-Path $fixtureDir "chinese_expected_fields.txt"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.7] $Message"
+    Write-Host "[v1.3.8] $Message"
 }
 
 function Assert-PathInsideProject {

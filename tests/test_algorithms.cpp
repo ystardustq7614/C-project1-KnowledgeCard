@@ -6,7 +6,11 @@
 #include <string>
 #include <vector>
 
-using namespace std;
+using std::cerr;
+using std::cout;
+using std::string;
+using std::to_string;
+using std::vector;
 
 /*
 测试职责：

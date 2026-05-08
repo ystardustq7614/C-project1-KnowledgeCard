@@ -7,7 +7,13 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std;
+using std::cout;
+using std::cin;
+using std::getline;
+using std::set;
+using std::sort;
+using std::string;
+using std::vector;
 
 /*
 模块职责：

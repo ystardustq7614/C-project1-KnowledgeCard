@@ -4,7 +4,8 @@
 #include <cstdio>
 #include <ctime>
 
-using namespace std;
+using std::string;
+using std::stoi;
 
 /*
 实现说明：

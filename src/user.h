@@ -2,7 +2,6 @@
 #define USER_H
 
 #include <string>
-using namespace std;
 
 /*
 模块职责：
@@ -15,8 +14,8 @@ using namespace std;
 
 // 用户查找
 // 返回：找不到时返回 -1；调用方不得把 -1 当作 users 下标使用。
-bool usernameExists(const string& username);
-int findUserIndexByName(const string& username);
+bool usernameExists(const std::string& username);
+int findUserIndexByName(const std::string& username);
 int findUserIndexById(int userId);
 
 // 用户操作

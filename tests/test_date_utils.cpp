@@ -3,7 +3,10 @@
 #include <iostream>
 #include <string>
 
-using namespace std;
+using std::cerr;
+using std::cout;
+using std::string;
+using std::to_string;
 
 /*
 测试职责：

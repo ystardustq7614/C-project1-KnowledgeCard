@@ -4,7 +4,10 @@
 #include "utils.h"
 #include <iostream>
 
-using namespace std;
+using std::cout;
+using std::cin;
+using std::getline;
+using std::string;
 
 /*
 模块职责：

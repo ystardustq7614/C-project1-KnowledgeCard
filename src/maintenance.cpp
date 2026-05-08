@@ -9,7 +9,14 @@
 #include <set>
 #include <vector>
 
-using namespace std;
+using std::cout;
+using std::cin;
+using std::getline;
+using std::map;
+using std::remove_if;
+using std::string;
+using std::to_string;
+using std::vector;
 
 /*
 模块职责：

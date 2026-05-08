@@ -2,7 +2,6 @@
 #define UTILS_H
 
 #include <string>
-using namespace std;
 
 /*
 模块职责：
@@ -27,24 +26,24 @@ using namespace std;
 void initTUI();
 
 // ========== 字符串处理 ==========
-string trim(const string& s);
-string toLowerCase(const string& s);
-bool containsKeyword(const string& text, const string& key);
+std::string trim(const std::string& s);
+std::string toLowerCase(const std::string& s);
+bool containsKeyword(const std::string& text, const std::string& key);
 
 // ========== 输入解析 ==========
-bool parseInt(const string& text, int& value);
+bool parseInt(const std::string& text, int& value);
 
 // 功能：读取单行或以 .multi/.end 包裹的多行文本。
 // 返回：普通单行会 trim；多行模式保留行内内容和换行，用于卡片/错题长文本。
-string readTextInput(const string& prompt);
+std::string readTextInput(const std::string& prompt);
 
 // ========== 日期处理（格式统一 YYYY-MM-DD） ==========
-string getTodayDate();
-bool isValidDate(const string& date);
-int compareDate(const string& a, const string& b);
-string addDays(const string& date, int days);
-int daysBetween(const string& from, const string& to);
-bool isDateDue(const string& date);   // date <= 今天 返回 true
+std::string getTodayDate();
+bool isValidDate(const std::string& date);
+int compareDate(const std::string& a, const std::string& b);
+std::string addDays(const std::string& date, int days);
+int daysBetween(const std::string& from, const std::string& to);
+bool isDateDue(const std::string& date);   // date <= 今天 返回 true
 
 // ========== 界面辅助 ==========
 void pauseScreen();

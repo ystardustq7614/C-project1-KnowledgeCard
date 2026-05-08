@@ -16,7 +16,11 @@
 #include "algo_recommend.h" // 弱项推荐算法
 #include "practice.h"       // 自测练习
 
-using namespace std;
+using std::cout;
+using std::cin;
+using std::getline;
+using std::string;
+using std::vector;
 
 /*
 模块职责：

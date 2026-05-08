@@ -13,7 +13,11 @@
 #include <windows.h>
 #endif
 
-using namespace std;
+using std::cout;
+using std::cin;
+using std::getline;
+using std::string;
+using std::vector;
 
 /*
 实现说明：

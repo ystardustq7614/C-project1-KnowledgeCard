@@ -2,7 +2,10 @@
 #include <map>
 #include <algorithm>
 
-using namespace std;
+using std::map;
+using std::sort;
+using std::string;
+using std::vector;
 
 // 聚合时只保留总掌握度和条目数，避免算法层依赖完整 Card/WrongQuestion 模型。
 struct ChapterStat {

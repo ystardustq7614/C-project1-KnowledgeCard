@@ -7,8 +7,15 @@
 #include <fstream>
 #include <sstream>
 
-using namespace std;
 namespace fs = std::filesystem;
+
+using std::cout;
+using std::endl;
+using std::ifstream;
+using std::ofstream;
+using std::string;
+using std::stringstream;
+using std::vector;
 
 /*
 模块职责：
