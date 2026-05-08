@@ -1,6 +1,7 @@
 #ifndef ALGO_DECAY_H
 #define ALGO_DECAY_H
 
+// string 用来传入 YYYY-MM-DD 日期；算法本身不依赖全局日期状态。
 #include <string>
 
 /*
@@ -20,8 +21,11 @@
 // 纯数据结构：记忆衰减结果
 // ================================================================
 struct DecayResult {
+    // 衰减后的掌握度；未触发衰减时保持输入值。
     int newMastery;
+    // 衰减后的间隔；未触发衰减时保持输入值。
     int newInterval;
+    // 是否真的发生了衰减，调用方可用它决定是否保存和提示。
     bool decayed;
 };
 
@@ -32,6 +36,8 @@ struct DecayResult {
 // 引入“破产保护”：掌握度最多退化到 30，避免极大挫败感。
 // ================================================================
 // 返回：decayed=false 时 newMastery/newInterval 保持输入值，调用方无需额外判断原值。
+// 你以后可改：宽限天数、扣分公式、掌握度下限、间隔缩短策略。
+// 不建议随手改：非法日期不衰减的策略；它和维护模块的“先报告再修复”思路一致。
 DecayResult calculateDecay(int currentMastery, int currentInterval, const std::string& nextReviewDate, const std::string& todayDate);
 
 #endif

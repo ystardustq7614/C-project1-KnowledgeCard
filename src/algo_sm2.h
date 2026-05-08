@@ -18,8 +18,11 @@
 // 纯数据结构：复习结果
 // ================================================================
 struct ReviewResult {
+    // 复习后的掌握度，调用方会写回 Card/WrongQuestion.mastery。
     int newMastery;
+    // 复习后的间隔天数，调用方会写回 intervalDays。
     int newInterval;
+    // 复习后的连续答对次数，评分低时会被重置。
     int correctStreak;
 };
 
@@ -33,6 +36,8 @@ struct ReviewResult {
 // ================================================================
 // 参数：oldMastery 建议在 0~100，oldInterval 最小业务值为 1，score 必须是 1/2/3。
 // 返回：newMastery 会钳制在 0~100，newInterval 至少为 1。
+// 你以后可改：掌握度增减幅度、间隔增长倍率、连续答对奖励。
+// 不建议随手改：score 的 1/2/3 语义；review.cpp、测试脚本和 ReviewLog 都依赖它。
 ReviewResult calculateNextReview(int oldMastery, int oldInterval, int oldStreak, int score);
 
 #endif
