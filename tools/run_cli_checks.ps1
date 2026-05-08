@@ -10,7 +10,7 @@ param(
 
 关键约束：
 - 每个 case 从 tests/fixtures 复制到 .test_tmp/cli_checks 下运行，避免污染真实 data/。
-- 自动修复测试不仅检查退出码，还检查 linkedCardId 等关键字段是否被实际归正。
+- 自动修复测试不仅检查退出码，还检查错题转卡关联字段等关键字段是否被实际归正。
 - 退出码是 CLI 契约的一部分，不能只看输出文本。
 #>
 
@@ -24,7 +24,7 @@ $fixtureRoot = Join-Path $projectRoot "tests\fixtures"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.8] $Message"
+    Write-Host "[v1.4.4] $Message"
 }
 
 function Assert-PathInsideProject {
@@ -166,7 +166,7 @@ try {
     Invoke-ProjectCase -CaseDir $brokenFixCase -Arguments @("--check-data") -ExpectedExitCode 0 -Label "broken link post-fix check"
     $linkedCardId = Get-WrongLinkedCardId $brokenFixCase
     if ($linkedCardId -ne "-1") {
-        throw "broken link auto fix failed: expected linkedCardId -1, got $linkedCardId"
+        throw "broken link auto fix failed: expected wrong-to-card link -1, got $linkedCardId"
     }
     Write-Step "broken link field verification passed"
 

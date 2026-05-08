@@ -3,6 +3,7 @@
 #include "globals.h"
 #include "storage.h"
 #include "utils.h"
+#include "tui.h"
 #include <iostream>
 #include <vector>
 #include <set>
@@ -52,7 +53,6 @@ void printWrongBrief(int displayIdx, int realIdx) {
 void printWrongDetail(int index) {
     const WrongQuestion& w = wrongs[index];
     cout << "------------------------------\n";
-    // cout << "错题编号：" << w.wrongId << "\n"; // 隐藏内部 ID
     cout << "学    科：" << w.subject << "\n";
     cout << "章    节：" << w.chapter << "\n";
     cout << "题    目：" << w.question << "\n";
@@ -60,7 +60,7 @@ void printWrongDetail(int index) {
     cout << "用户答案：" << w.wrongAnswer << "\n";
     cout << "错因分析：" << w.reason << "\n";
     cout << "错因类型：" << (w.errorType.empty() ? "未分类" : w.errorType) << "\n";
-    cout << "关联卡片：" << (w.linkedCardId == -1 ? "无" : to_string(w.linkedCardId)) << "\n";
+    cout << "关联卡片：" << (w.linkedCardId == -1 ? "无" : "已关联") << "\n";
     cout << "掌 握 度：" << w.mastery << "\n";
     cout << "复习次数：" << w.reviewCount << "\n";
     cout << "连续答对：" << w.correctStreak << "\n";
@@ -145,7 +145,7 @@ string inputErrorType() {
 
     int idx;
     if (!parseInt(line, idx) || idx < 1 || idx > ERROR_TYPE_COUNT) {
-        cout << "输入无效，已跳过错因类型。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "输入无效，已跳过错因类型。");
         return "";
     }
     return VALID_ERROR_TYPES[idx - 1];
@@ -155,9 +155,7 @@ string inputErrorType() {
 
 void addWrong() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       记录新错题\n";
-    cout << "==============================\n";
+    renderPageHeader("记录新错题", "记录题目、答案、错因和可选错因类型。");
 
     WrongQuestion w;
     w.userId = currentUserId;
@@ -188,7 +186,7 @@ void addWrong() {
     wrongs.push_back(w);
     saveWrongs();
 
-    cout << "\n错题记录成功！编号：" << w.wrongId << "\n";
+    printTuiNotice(TuiNoticeLevel::Success, "错题记录成功，已加入当前用户的错题列表。");
     pauseScreen();
 }
 
@@ -196,12 +194,11 @@ void addWrong() {
 
 void editWrong() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       修改错题信息\n";
-    cout << "==============================\n";
+    renderPageHeader("修改错题信息", "从最近列表或全部错题中选择一条进行编辑。");
 
     if (currentWrongMap.empty()) {
-        cout << "当前没有展示列表，正在自动加载全部错题...\n\n";
+        printTuiNotice(TuiNoticeLevel::Info, "当前没有展示列表，正在自动加载全部错题。");
+        cout << "\n";
         for (size_t i = 0; i < wrongs.size(); ++i) {
             if (wrongs[i].userId == currentUserId && wrongs[i].active) {
                 currentWrongMap.push_back(i);
@@ -216,7 +213,7 @@ void editWrong() {
     }
 
     if (currentWrongMap.empty()) {
-        cout << "未找到任何可用错题。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "未找到任何可用错题。");
         pauseScreen();
         return;
     }
@@ -229,7 +226,7 @@ void editWrong() {
 
     int displayIdx;
     if (!parseInt(line, displayIdx) || displayIdx < 1 || displayIdx > static_cast<int>(currentWrongMap.size())) {
-        cout << "序号无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         pauseScreen();
         return;
     }
@@ -273,7 +270,7 @@ void editWrong() {
     }
 
     saveWrongs();
-    cout << "\n错题信息修改成功！\n";
+    printTuiNotice(TuiNoticeLevel::Success, "错题信息修改成功。");
     pauseScreen();
 }
 
@@ -281,12 +278,11 @@ void editWrong() {
 
 void deleteWrong() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       删除错题记录\n";
-    cout << "==============================\n";
+    renderPageHeader("删除错题记录", "逻辑删除错题，后续可在数据维护中恢复。");
 
     if (currentWrongMap.empty()) {
-        cout << "当前没有展示列表，正在自动加载全部错题...\n\n";
+        printTuiNotice(TuiNoticeLevel::Info, "当前没有展示列表，正在自动加载全部错题。");
+        cout << "\n";
         for (size_t i = 0; i < wrongs.size(); ++i) {
             if (wrongs[i].userId == currentUserId && wrongs[i].active) {
                 currentWrongMap.push_back(i);
@@ -301,7 +297,7 @@ void deleteWrong() {
     }
 
     if (currentWrongMap.empty()) {
-        cout << "未找到任何可用错题。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "未找到任何可用错题。");
         pauseScreen();
         return;
     }
@@ -314,7 +310,7 @@ void deleteWrong() {
 
     int displayIdx;
     if (!parseInt(line, displayIdx) || displayIdx < 1 || displayIdx > static_cast<int>(currentWrongMap.size())) {
-        cout << "序号无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         pauseScreen();
         return;
     }
@@ -328,7 +324,7 @@ void deleteWrong() {
     getline(cin, line);
     line = trim(line);
     if (line != "y" && line != "Y") {
-        cout << "已取消删除。\n";
+        printTuiNotice(TuiNoticeLevel::Info, "已取消删除。");
         pauseScreen();
         return;
     }
@@ -336,7 +332,7 @@ void deleteWrong() {
     // 逻辑删除保留错题与复习日志，便于回收站恢复和历史统计审计。
     wrongs[found].active = false;
     saveWrongs();
-    cout << "错题已删除。\n";
+    printTuiNotice(TuiNoticeLevel::Success, "错题已删除，可在数据维护中恢复。");
     pauseScreen();
 }
 
@@ -344,12 +340,11 @@ void deleteWrong() {
 
 void queryWrongById() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       查看错题详情\n";
-    cout << "==============================\n";
+    renderPageHeader("查看错题详情", "从最近列表或自动加载的全部错题中选择一条查看。");
 
     if (currentWrongMap.empty()) {
-        cout << "当前没有展示列表，正在自动加载全部错题...\n\n";
+        printTuiNotice(TuiNoticeLevel::Info, "当前没有展示列表，正在自动加载全部错题。");
+        cout << "\n";
         for (size_t i = 0; i < wrongs.size(); ++i) {
             if (wrongs[i].userId == currentUserId && wrongs[i].active) {
                 currentWrongMap.push_back(i);
@@ -364,7 +359,7 @@ void queryWrongById() {
     }
 
     if (currentWrongMap.empty()) {
-        cout << "未找到任何可用错题。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "未找到任何可用错题。");
         pauseScreen();
         return;
     }
@@ -377,7 +372,7 @@ void queryWrongById() {
 
     int displayIdx;
     if (!parseInt(line, displayIdx) || displayIdx < 1 || displayIdx > static_cast<int>(currentWrongMap.size())) {
-        cout << "序号无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         pauseScreen();
         return;
     }
@@ -388,16 +383,14 @@ void queryWrongById() {
 
 void queryWrongByKeyword() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     按关键字查询错题\n";
-    cout << "==============================\n";
+    renderPageHeader("按关键字查询错题", "搜索题目、答案、错误答案和错因分析。");
 
     cout << "请输入关键字：";
     string keyword;
     getline(cin, keyword);
     keyword = trim(keyword);
     if (keyword.empty()) {
-        cout << "关键字不能为空。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "关键字不能为空。");
         pauseScreen();
         return;
     }
@@ -415,7 +408,7 @@ void queryWrongByKeyword() {
     }
 
     if (currentWrongMap.empty()) {
-        cout << "未找到匹配的错题。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "未找到匹配的错题。");
         pauseScreen();
         return;
     }
@@ -434,7 +427,7 @@ void queryWrongByKeyword() {
         if (parseInt(line, idx) && idx >= 1 && idx <= static_cast<int>(currentWrongMap.size())) {
             printWrongDetail(currentWrongMap[idx - 1]);
         } else {
-            cout << "序号无效。\n";
+            printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         }
     }
     pauseScreen();
@@ -444,10 +437,7 @@ void queryWrongByKeyword() {
 
 void queryWrongMultiCondition() {
   clearScreen();
-  cout << "==============================\n";
-  cout << "       多条件组合查询\n";
-  cout << "==============================\n";
-  cout << "提示：任何条件直接回车即表示不限。\n\n";
+  renderPageHeader("多条件组合查询", "任何条件直接回车即表示不限。");
 
   cout << "请输入学科（回车跳过）：";
   string subject;
@@ -485,7 +475,7 @@ void queryWrongMultiCondition() {
   }
 
   if (currentWrongMap.empty()) {
-      cout << "\n未找到符合所有条件的错题。\n";
+      printTuiNotice(TuiNoticeLevel::Warning, "未找到符合所有条件的错题。");
   } else {
       cout << "\n找到 " << currentWrongMap.size() << " 道符合条件的错题：\n\n";
       for (size_t i = 0; i < currentWrongMap.size(); ++i) {
@@ -501,7 +491,7 @@ void queryWrongMultiCondition() {
         if (parseInt(line, idx) && idx >= 1 && idx <= static_cast<int>(currentWrongMap.size())) {
           printWrongDetail(currentWrongMap[idx - 1]);
         } else {
-          cout << "序号无效。\n";
+          printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         }
       }
   }
@@ -532,26 +522,24 @@ vector<int> filterWrongsByChapter(const string& chapter) {
 
 void viewWrongsByCategory() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     按分类查看错题\n";
-    cout << "==============================\n";
-    cout << "1. 按学科查看\n";
-    cout << "2. 按章节查看\n";
-    cout << "0. 返回\n";
-    cout << "请选择：";
+    renderSubMenu("按分类查看错题", "选择分类维度后查看对应错题", {
+        {"1", "按学科查看", "subject"},
+        {"2", "按章节查看", "chapter"},
+        {"0", "返回", "back"}
+    });
 
     string line;
     getline(cin, line);
     int choice;
     if (!parseInt(line, choice)) {
-        cout << "输入无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "输入无效。");
         pauseScreen();
         return;
     }
 
     if (choice == 0) return;
     if (choice < 1 || choice > 2) {
-        cout << "菜单选项不存在。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
         pauseScreen();
         return;
     }
@@ -565,7 +553,7 @@ void viewWrongsByCategory() {
     }
 
     if (categories.empty()) {
-        cout << "当前没有错题数据。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "当前没有错题数据。");
         pauseScreen();
         return;
     }
@@ -582,7 +570,7 @@ void viewWrongsByCategory() {
     getline(cin, line);
     int catChoice;
     if (!parseInt(line, catChoice) || catChoice < 0 || catChoice > static_cast<int>(catList.size())) {
-        cout << "输入无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "输入无效。");
         pauseScreen();
         return;
     }
@@ -615,7 +603,7 @@ void viewWrongsByCategory() {
         if (parseInt(line, idx) && idx >= 1 && idx <= static_cast<int>(currentWrongMap.size())) {
             printWrongDetail(currentWrongMap[idx - 1]);
         } else {
-            cout << "序号无效。\n";
+            printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         }
     }
     pauseScreen();
@@ -625,9 +613,7 @@ void viewWrongsByCategory() {
 
 void viewAllWrongs() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     全部错题记录\n";
-    cout << "==============================\n";
+    renderPageHeader("全部错题记录", "展示当前用户的全部有效错题。");
 
     currentWrongMap.clear();
     for (size_t i = 0; i < wrongs.size(); ++i) {
@@ -637,7 +623,7 @@ void viewAllWrongs() {
     }
 
     if (currentWrongMap.empty()) {
-        cout << "当前没有错题。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "当前没有错题。");
     } else {
         for (size_t i = 0; i < currentWrongMap.size(); ++i) {
             printWrongBrief(i + 1, currentWrongMap[i]);
@@ -653,7 +639,7 @@ void viewAllWrongs() {
             if (parseInt(line, idx) && idx >= 1 && idx <= static_cast<int>(currentWrongMap.size())) {
                 printWrongDetail(currentWrongMap[idx - 1]);
             } else {
-                cout << "序号无效。\n";
+                printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
             }
         }
     }
@@ -664,12 +650,11 @@ void viewAllWrongs() {
 
 void convertWrongToCard() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     错题转知识卡片\n";
-    cout << "==============================\n";
+    renderPageHeader("错题转知识卡片", "把错题生成新卡片，并写回错题关联。");
 
     if (currentWrongMap.empty()) {
-        cout << "当前没有展示列表，正在自动加载全部错题...\n\n";
+        printTuiNotice(TuiNoticeLevel::Info, "当前没有展示列表，正在自动加载全部错题。");
+        cout << "\n";
         for (size_t i = 0; i < wrongs.size(); ++i) {
             if (wrongs[i].userId == currentUserId && wrongs[i].active) {
                 currentWrongMap.push_back(i);
@@ -684,7 +669,7 @@ void convertWrongToCard() {
     }
 
     if (currentWrongMap.empty()) {
-        cout << "未找到任何可用错题。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "未找到任何可用错题。");
         pauseScreen();
         return;
     }
@@ -697,7 +682,7 @@ void convertWrongToCard() {
 
     int displayIdx;
     if (!parseInt(line, displayIdx) || displayIdx < 1 || displayIdx > static_cast<int>(currentWrongMap.size())) {
-        cout << "序号无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         pauseScreen();
         return;
     }
@@ -706,7 +691,7 @@ void convertWrongToCard() {
     WrongQuestion& w = wrongs[found];
 
     if (w.linkedCardId != -1 && hasVisibleLinkedCard(w.linkedCardId)) {
-        cout << "该错题已关联卡片（卡片编号：" << w.linkedCardId << "），无法重复转换。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "该错题已关联可见卡片，无法重复转换。");
         pauseScreen();
         return;
     }
@@ -714,7 +699,7 @@ void convertWrongToCard() {
     if (w.linkedCardId != -1) {
         // 临时兼容原因：旧数据可能保留了失效 linkedCardId；重新生成可见卡片后覆盖关联。
         // 移除条件：所有旧数据都经过 maintenance --fix 或版本迁移后，可改为提前清理。
-        cout << "检测到该错题关联的卡片不存在或不可见，将重新生成卡片并修复关联。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "检测到该错题关联的卡片不存在或不可见，将重新生成卡片并修复关联。");
     }
 
     Card c;
@@ -748,7 +733,7 @@ void convertWrongToCard() {
     w.linkedCardId = c.cardId;
     saveWrongs();
 
-    cout << "\n转换成功！已生成新卡片（编号：" << c.cardId << "）。\n";
+    printTuiNotice(TuiNoticeLevel::Success, "转换成功，已生成新卡片，可在知识卡片管理中查看。");
     pauseScreen();
 }
 
@@ -757,26 +742,24 @@ void convertWrongToCard() {
 void showWrongMenu() {
     while (true) {
         clearScreen();
-        cout << "==============================\n";
-        cout << "       错题管理\n";
-        cout << "==============================\n";
-        cout << "1. 记录错题\n";
-        cout << "2. 修改错题\n";
-        cout << "3. 删除错题\n";
-        cout << "4. 查看最近列表详情\n";
-        cout << "5. 按关键字查询\n";
-        cout << "6. 分类查看\n";
-        cout << "7. 多条件组合查询\n";
-        cout << "8. 错题转知识卡片\n";
-        cout << "9. 查看全部错题\n";
-        cout << "0. 返回主菜单\n";
-        cout << "请选择：";
+        renderSubMenu("错题管理", "记录错因、检索错题，并将错题转化为知识卡片", {
+            {"1", "记录错题", "create"},
+            {"2", "修改错题", "edit"},
+            {"3", "删除错题", "soft delete"},
+            {"4", "查看最近列表详情", "recent"},
+            {"5", "按关键字查询", "search"},
+            {"6", "分类查看", "filter"},
+            {"7", "多条件组合查询", "advanced"},
+            {"8", "错题转知识卡片", "convert"},
+            {"9", "查看全部错题", "all"},
+            {"0", "返回主菜单", "back"}
+        });
 
         string line;
         if (!getline(cin, line)) return;
         int choice;
         if (!parseInt(line, choice)) {
-            cout << "输入无效，请重新输入。\n";
+            printTuiNotice(TuiNoticeLevel::Error, "输入无效，请重新输入。");
             pauseScreen();
             continue;
         }
@@ -793,7 +776,7 @@ void showWrongMenu() {
             case 9: viewAllWrongs();         break;
             case 0: return;
             default:
-                cout << "菜单选项不存在。\n";
+                printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
                 pauseScreen();
         }
     }

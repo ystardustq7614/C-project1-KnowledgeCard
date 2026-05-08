@@ -10,7 +10,7 @@
 
 关键约束：
 - 所有面向用户的操作只处理 currentUserId 对应且 active=true 的卡片。
-- UI 展示使用连续序号，底层仍使用 cards 容器下标和 cardId；维护映射时必须避免把展示序号当作真实 ID。
+- UI 展示使用连续序号，底层仍使用 cards 容器下标和内部键；维护映射时必须避免把展示序号当作底层键。
 - 修改、删除、新增等写操作会立即保存 cards.txt。
 */
 
@@ -29,7 +29,7 @@ void editCard();
 void deleteCard();
 
 // ========== 卡片查询 ==========
-// 功能：按最近展示列表的序号查看详情；这里的“Id”保留历史命名，用户输入的是展示序号。
+// 功能：按最近展示列表的序号查看详情；函数名中的 Id 是历史命名，用户输入的是展示序号。
 void queryCardById();
 void queryCardByKeyword();
 void viewCardsByCategory();
@@ -44,7 +44,7 @@ void printCardBrief(int displayIdx, int realIdx);
 void printCardDetail(int index);
 
 // ========== 筛选与排序 ==========
-// 返回：cards 全局容器下标，不是 cardId；调用方可继续排序或映射到展示序号。
+// 返回：cards 全局容器下标，不是持久化主键；调用方可继续排序或映射到展示序号。
 std::vector<int> filterCardsBySubject(const std::string& subject);
 std::vector<int> filterCardsByChapter(const std::string& chapter);
 std::vector<int> filterCardsByTag(const std::string& tag);

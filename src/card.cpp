@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "storage.h"
 #include "utils.h"
+#include "tui.h"
 #include <iostream>
 #include <set>
 #include <vector>
@@ -45,7 +46,6 @@ void printCardBrief(int displayIdx, int realIdx) {
 void printCardDetail(int index) {
   const Card &c = cards[index];
   cout << "------------------------------\n";
-  // cout << "卡片编号：" << c.cardId << "\n"; // 隐藏内部 ID
   cout << "学    科：" << c.subject << "\n";
   cout << "章    节：" << c.chapter << "\n";
   cout << "标    题：" << c.title << "\n";
@@ -119,7 +119,7 @@ static bool readDifficulty(const string &prompt, int &out) {
   getline(cin, line);
   int val;
   if (!parseInt(line, val) || val < 1 || val > 5) {
-    cout << "难度必须为 1~5 的整数。\n";
+    printTuiNotice(TuiNoticeLevel::Error, "难度必须为 1~5 的整数。");
     return false;
   }
   out = val;
@@ -130,9 +130,7 @@ static bool readDifficulty(const string &prompt, int &out) {
 
 void addCard() {
   clearScreen();
-  cout << "==============================\n";
-  cout << "       新增知识卡片\n";
-  cout << "==============================\n";
+  renderPageHeader("新增知识卡片", "创建一张可复习的知识卡片，创建当天会进入复习队列。");
 
   Card c;
   c.userId = currentUserId;
@@ -179,7 +177,7 @@ void addCard() {
   cards.push_back(c);
   saveCards();
 
-  cout << "\n卡片创建成功！编号：" << c.cardId << "\n";
+  printTuiNotice(TuiNoticeLevel::Success, "卡片创建成功，已加入当前用户的知识卡片列表。");
   pauseScreen();
 }
 
@@ -187,13 +185,12 @@ void addCard() {
 
 void editCard() {
   clearScreen();
-  cout << "==============================\n";
-  cout << "       修改知识卡片\n";
-  cout << "==============================\n";
+  renderPageHeader("修改知识卡片", "从最近列表或全部卡片中选择一张进行编辑。");
 
   if (currentCardMap.empty()) {
     // 没有最近列表时自动加载全部有效卡片，保证编辑入口可独立使用。
-    cout << "当前没有展示列表，正在自动加载全部卡片...\n\n";
+    printTuiNotice(TuiNoticeLevel::Info, "当前没有展示列表，正在自动加载全部卡片。");
+    cout << "\n";
     for (size_t i = 0; i < cards.size(); ++i) {
       if (cards[i].userId == currentUserId && cards[i].active) {
         currentCardMap.push_back(i);
@@ -208,7 +205,7 @@ void editCard() {
   }
 
   if (currentCardMap.empty()) {
-    cout << "未找到任何可用卡片。\n";
+    printTuiNotice(TuiNoticeLevel::Warning, "未找到任何可用卡片。");
     pauseScreen();
     return;
   }
@@ -221,7 +218,7 @@ void editCard() {
 
   int displayIdx;
   if (!parseInt(line, displayIdx) || displayIdx < 1 || displayIdx > static_cast<int>(currentCardMap.size())) {
-    cout << "序号无效。\n";
+    printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
     pauseScreen();
     return;
   }
@@ -269,12 +266,12 @@ void editCard() {
     if (parseInt(input, val) && val >= 1 && val <= 5) {
       c.difficulty = val;
     } else {
-      cout << "难度输入无效，保留原值。\n";
+      printTuiNotice(TuiNoticeLevel::Warning, "难度输入无效，保留原值。");
     }
   }
 
   saveCards();
-  cout << "\n卡片修改成功！\n";
+  printTuiNotice(TuiNoticeLevel::Success, "卡片修改成功。");
   pauseScreen();
 }
 
@@ -282,12 +279,11 @@ void editCard() {
 
 void deleteCard() {
   clearScreen();
-  cout << "==============================\n";
-  cout << "       删除知识卡片\n";
-  cout << "==============================\n";
+  renderPageHeader("删除知识卡片", "逻辑删除卡片，后续可在数据维护中恢复。");
 
   if (currentCardMap.empty()) {
-    cout << "当前没有展示列表，正在自动加载全部卡片...\n\n";
+    printTuiNotice(TuiNoticeLevel::Info, "当前没有展示列表，正在自动加载全部卡片。");
+    cout << "\n";
     for (size_t i = 0; i < cards.size(); ++i) {
       if (cards[i].userId == currentUserId && cards[i].active) {
         currentCardMap.push_back(i);
@@ -302,7 +298,7 @@ void deleteCard() {
   }
 
   if (currentCardMap.empty()) {
-    cout << "未找到任何可用卡片。\n";
+    printTuiNotice(TuiNoticeLevel::Warning, "未找到任何可用卡片。");
     pauseScreen();
     return;
   }
@@ -315,7 +311,7 @@ void deleteCard() {
 
   int displayIdx;
   if (!parseInt(line, displayIdx) || displayIdx < 1 || displayIdx > static_cast<int>(currentCardMap.size())) {
-    cout << "序号无效。\n";
+    printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
     pauseScreen();
     return;
   }
@@ -329,7 +325,7 @@ void deleteCard() {
   getline(cin, line);
   line = trim(line);
   if (line != "y" && line != "Y") {
-    cout << "已取消删除。\n";
+    printTuiNotice(TuiNoticeLevel::Info, "已取消删除。");
     pauseScreen();
     return;
   }
@@ -337,7 +333,7 @@ void deleteCard() {
   // 逻辑删除保留复习历史和可恢复能力；物理删除只在维护模块的回收站流程中执行。
   cards[found].active = false;
   saveCards();
-  cout << "卡片已删除。\n";
+  printTuiNotice(TuiNoticeLevel::Success, "卡片已删除，可在数据维护中恢复。");
   pauseScreen();
 }
 
@@ -345,12 +341,11 @@ void deleteCard() {
 
 void queryCardById() {
   clearScreen();
-  cout << "==============================\n";
-  cout << "       查看卡片详情\n";
-  cout << "==============================\n";
+  renderPageHeader("查看卡片详情", "从最近列表或自动加载的全部卡片中选择一条查看。");
 
   if (currentCardMap.empty()) {
-    cout << "当前没有展示列表，正在自动加载全部卡片...\n\n";
+    printTuiNotice(TuiNoticeLevel::Info, "当前没有展示列表，正在自动加载全部卡片。");
+    cout << "\n";
     for (size_t i = 0; i < cards.size(); ++i) {
       if (cards[i].userId == currentUserId && cards[i].active) {
         currentCardMap.push_back(i);
@@ -365,7 +360,7 @@ void queryCardById() {
   }
 
   if (currentCardMap.empty()) {
-    cout << "未找到任何可用卡片。\n";
+    printTuiNotice(TuiNoticeLevel::Warning, "未找到任何可用卡片。");
     pauseScreen();
     return;
   }
@@ -378,7 +373,7 @@ void queryCardById() {
 
   int displayIdx;
   if (!parseInt(line, displayIdx) || displayIdx < 1 || displayIdx > static_cast<int>(currentCardMap.size())) {
-    cout << "序号无效。\n";
+    printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
     pauseScreen();
     return;
   }
@@ -391,16 +386,14 @@ void queryCardById() {
 
 void queryCardByKeyword() {
   clearScreen();
-  cout << "==============================\n";
-  cout << "   按关键字查询知识卡片\n";
-  cout << "==============================\n";
+  renderPageHeader("按关键字查询知识卡片", "搜索标题、正面、背面和标签。");
 
   cout << "请输入关键字：";
   string keyword;
   getline(cin, keyword);
   keyword = trim(keyword);
   if (keyword.empty()) {
-    cout << "关键字不能为空。\n";
+    printTuiNotice(TuiNoticeLevel::Error, "关键字不能为空。");
     pauseScreen();
     return;
   }
@@ -419,7 +412,7 @@ void queryCardByKeyword() {
   }
 
   if (currentCardMap.empty()) {
-    cout << "未找到匹配的卡片。\n";
+    printTuiNotice(TuiNoticeLevel::Warning, "未找到匹配的卡片。");
     pauseScreen();
     return;
   }
@@ -439,7 +432,7 @@ void queryCardByKeyword() {
     if (parseInt(line, idx) && idx >= 1 && idx <= static_cast<int>(currentCardMap.size())) {
       printCardDetail(currentCardMap[idx - 1]);
     } else {
-      cout << "序号无效。\n";
+      printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
     }
   }
   pauseScreen();
@@ -449,10 +442,7 @@ void queryCardByKeyword() {
 
 void queryCardMultiCondition() {
   clearScreen();
-  cout << "==============================\n";
-  cout << "       多条件组合查询\n";
-  cout << "==============================\n";
-  cout << "提示：任何条件直接回车即表示不限。\n\n";
+  renderPageHeader("多条件组合查询", "任何条件直接回车即表示不限。");
 
   cout << "请输入学科（回车跳过）：";
   string subject;
@@ -491,7 +481,7 @@ void queryCardMultiCondition() {
   }
 
   if (currentCardMap.empty()) {
-      cout << "\n未找到符合所有条件的卡片。\n";
+      printTuiNotice(TuiNoticeLevel::Warning, "未找到符合所有条件的卡片。");
   } else {
       cout << "\n找到 " << currentCardMap.size() << " 张符合条件的卡片：\n\n";
       for (size_t i = 0; i < currentCardMap.size(); ++i) {
@@ -507,7 +497,7 @@ void queryCardMultiCondition() {
         if (parseInt(line, idx) && idx >= 1 && idx <= static_cast<int>(currentCardMap.size())) {
           printCardDetail(currentCardMap[idx - 1]);
         } else {
-          cout << "序号无效。\n";
+          printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         }
       }
   }
@@ -518,20 +508,18 @@ void queryCardMultiCondition() {
 
 void viewCardsByCategory() {
   clearScreen();
-  cout << "==============================\n";
-  cout << "     按分类查看知识卡片\n";
-  cout << "==============================\n";
-  cout << "1. 按学科查看\n";
-  cout << "2. 按章节查看\n";
-  cout << "3. 按标签查看\n";
-  cout << "0. 返回\n";
-  cout << "请选择：";
+  renderSubMenu("按分类查看知识卡片", "选择分类维度后查看对应卡片", {
+    {"1", "按学科查看", "subject"},
+    {"2", "按章节查看", "chapter"},
+    {"3", "按标签查看", "tag"},
+    {"0", "返回", "back"}
+  });
 
   string line;
   getline(cin, line);
   int choice;
   if (!parseInt(line, choice)) {
-    cout << "输入无效。\n";
+    printTuiNotice(TuiNoticeLevel::Error, "输入无效。");
     pauseScreen();
     return;
   }
@@ -539,7 +527,7 @@ void viewCardsByCategory() {
   if (choice == 0)
     return;
   if (choice < 1 || choice > 3) {
-    cout << "菜单选项不存在。\n";
+    printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
     pauseScreen();
     return;
   }
@@ -564,7 +552,7 @@ void viewCardsByCategory() {
   }
 
   if (categories.empty()) {
-    cout << "当前没有卡片数据。\n";
+    printTuiNotice(TuiNoticeLevel::Warning, "当前没有卡片数据。");
     pauseScreen();
     return;
   }
@@ -582,7 +570,7 @@ void viewCardsByCategory() {
   int catChoice;
   if (!parseInt(line, catChoice) || catChoice < 0 ||
       catChoice > static_cast<int>(catList.size())) {
-    cout << "输入无效。\n";
+    printTuiNotice(TuiNoticeLevel::Error, "输入无效。");
     pauseScreen();
     return;
   }
@@ -622,7 +610,7 @@ void viewCardsByCategory() {
     if (parseInt(line, idx) && idx >= 1 && idx <= static_cast<int>(currentCardMap.size())) {
       printCardDetail(currentCardMap[idx - 1]);
     } else {
-      cout << "序号无效。\n";
+      printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
     }
   }
   pauseScreen();
@@ -632,9 +620,7 @@ void viewCardsByCategory() {
 
 void viewAllCards() {
   clearScreen();
-  cout << "==============================\n";
-  cout << "     全部知识卡片\n";
-  cout << "==============================\n";
+  renderPageHeader("全部知识卡片", "展示当前用户的全部有效卡片。");
 
   currentCardMap.clear();
   for (size_t i = 0; i < cards.size(); ++i) {
@@ -644,7 +630,7 @@ void viewAllCards() {
   }
 
   if (currentCardMap.empty()) {
-    cout << "当前没有卡片。\n";
+    printTuiNotice(TuiNoticeLevel::Warning, "当前没有卡片。");
   } else {
     for (size_t i = 0; i < currentCardMap.size(); ++i) {
       printCardBrief(i + 1, currentCardMap[i]);
@@ -661,7 +647,7 @@ void viewAllCards() {
       if (parseInt(line, idx) && idx >= 1 && idx <= static_cast<int>(currentCardMap.size())) {
         printCardDetail(currentCardMap[idx - 1]);
       } else {
-        cout << "序号无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
       }
     }
   }
@@ -723,30 +709,28 @@ void sortCardsByMastery(vector<int>& indexes, bool ascending) {
 
 void viewCardsBySorting() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     排序查看知识卡片\n";
-    cout << "==============================\n";
-    cout << "1. 按创建时间升序\n";
-    cout << "2. 按创建时间降序\n";
-    cout << "3. 按下次复习时间升序\n";
-    cout << "4. 按下次复习时间降序\n";
-    cout << "5. 按掌握度升序\n";
-    cout << "6. 按掌握度降序\n";
-    cout << "0. 返回\n";
-    cout << "请选择：";
+    renderSubMenu("排序查看知识卡片", "选择排序方式后生成最近列表", {
+        {"1", "按创建时间升序", "old first"},
+        {"2", "按创建时间降序", "new first"},
+        {"3", "按下次复习时间升序", "due first"},
+        {"4", "按下次复习时间降序", "due last"},
+        {"5", "按掌握度升序", "weak first"},
+        {"6", "按掌握度降序", "strong first"},
+        {"0", "返回", "back"}
+    });
 
     string line;
     if (!getline(cin, line)) return;
     int choice;
     if (!parseInt(line, choice)) {
-        cout << "输入无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "输入无效。");
         pauseScreen();
         return;
     }
 
     if (choice == 0) return;
     if (choice < 1 || choice > 6) {
-        cout << "菜单选项不存在。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
         pauseScreen();
         return;
     }
@@ -759,7 +743,7 @@ void viewCardsBySorting() {
     }
 
     if (indexes.empty()) {
-        cout << "当前没有卡片数据。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "当前没有卡片数据。");
         pauseScreen();
         return;
     }
@@ -789,7 +773,7 @@ void viewCardsBySorting() {
       if (parseInt(line, idx) && idx >= 1 && idx <= static_cast<int>(currentCardMap.size())) {
         printCardDetail(currentCardMap[idx - 1]);
       } else {
-        cout << "序号无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
       }
     }
     pauseScreen();
@@ -800,26 +784,24 @@ void viewCardsBySorting() {
 void showCardMenu() {
   while (true) {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     知识卡片管理\n";
-    cout << "==============================\n";
-    cout << "1. 新增卡片\n";
-    cout << "2. 修改卡片\n";
-    cout << "3. 删除卡片\n";
-    cout << "4. 查看最近列表详情\n";
-    cout << "5. 按关键字查询\n";
-    cout << "6. 分类查看\n";
-    cout << "7. 排序查看卡片\n";
-    cout << "8. 多条件组合查询\n";
-    cout << "9. 查看全部卡片\n";
-    cout << "0. 返回主菜单\n";
-    cout << "请选择：";
+    renderSubMenu("知识卡片管理", "录入、整理、检索和复习知识卡片", {
+      {"1", "新增卡片", "create"},
+      {"2", "修改卡片", "edit"},
+      {"3", "删除卡片", "soft delete"},
+      {"4", "查看最近列表详情", "recent"},
+      {"5", "按关键字查询", "search"},
+      {"6", "分类查看", "filter"},
+      {"7", "排序查看卡片", "sort"},
+      {"8", "多条件组合查询", "advanced"},
+      {"9", "查看全部卡片", "all"},
+      {"0", "返回主菜单", "back"}
+    });
 
     string line;
     getline(cin, line);
     int choice;
     if (!parseInt(line, choice)) {
-      cout << "输入无效，请重新输入。\n";
+      printTuiNotice(TuiNoticeLevel::Error, "输入无效，请重新输入。");
       pauseScreen();
       continue;
     }
@@ -855,7 +837,7 @@ void showCardMenu() {
     case 0:
       return;
     default:
-      cout << "菜单选项不存在。\n";
+      printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
       pauseScreen();
     }
   }

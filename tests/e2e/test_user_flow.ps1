@@ -80,7 +80,7 @@ try {
     $userParts = Get-RequiredLine `
         -Path $usersFile `
         -Predicate { param($parts) $parts.Count -ge 4 -and (Decode-StorageField $parts[1]) -eq "v135_user" } `
-        -FailureMessage "v1.3.8 user not found"
+        -FailureMessage "v1.4.4 user not found"
 
     Assert-Equal -Label "user password changed" -Actual (Decode-StorageField $userParts[2]) -Expected "updated_pass"
     Assert-True -Label "single user record kept" -Condition ((Get-RecordLines $usersFile).Count -eq 1)

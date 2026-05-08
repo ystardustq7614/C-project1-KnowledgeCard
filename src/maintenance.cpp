@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "utils.h"
 #include "storage.h"
+#include "tui.h"
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -67,21 +68,19 @@ static bool isUserInScope(int recordUserId, int userIdFilter) {
 }
 
 static string describeUserScope(int userIdFilter) {
-    return userIdFilter == -1 ? "全部用户" : ("用户 ID " + to_string(userIdFilter));
+    return userIdFilter == -1 ? "全部用户" : ("指定用户 " + to_string(userIdFilter));
 }
 
 static int printDuplicateIds(const map<int, int>& counts, const string& label) {
     int duplicateCount = 0;
-    bool hasDuplicate = false;
     for (const auto& item : counts) {
         if (item.second > 1) {
-            if (!hasDuplicate) {
-                cout << "\n[重复编号] " << label << "：\n";
-                hasDuplicate = true;
-            }
-            cout << "  ID " << item.first << " 出现 " << item.second << " 次\n";
             duplicateCount++;
         }
+    }
+    if (duplicateCount > 0) {
+        cout << "\n[重复记录] " << label << "："
+             << duplicateCount << " 组重复记录（具体底层值已隐藏）。\n";
     }
     return duplicateCount;
 }
@@ -98,8 +97,8 @@ static DataConsistencyReport inspectDataConsistency(int userIdFilter) {
         wrongIdCounts[w.wrongId]++;
     }
 
-    report.duplicateIssueCount += printDuplicateIds(cardIdCounts, "知识卡片编号");
-    report.duplicateIssueCount += printDuplicateIds(wrongIdCounts, "错题编号");
+    report.duplicateIssueCount += printDuplicateIds(cardIdCounts, "知识卡片");
+    report.duplicateIssueCount += printDuplicateIds(wrongIdCounts, "错题");
     report.issueCount += report.duplicateIssueCount;
 
     cout << "\n[错题关联检查]\n";
@@ -122,8 +121,7 @@ static DataConsistencyReport inspectDataConsistency(int userIdFilter) {
 
         if (!valid) {
             // 失效关联可安全重置为 -1，用户随后可重新执行“错题转知识卡片”。
-            cout << "  错题 ID " << w.wrongId << " -> 卡片 ID " << w.linkedCardId
-                 << " 无效：" << reason << "\n";
+            cout << "  第 " << (i + 1) << " 条错题关联的卡片无效：" << reason << "\n";
             report.invalidLinkedWrongIndexes.push_back(static_cast<int>(i));
             report.issueCount++;
             report.autoFixableCount++;
@@ -134,64 +132,68 @@ static DataConsistencyReport inspectDataConsistency(int userIdFilter) {
     }
 
     cout << "\n[字段范围检查]\n";
-    for (const Card& c : cards) {
+    for (size_t i = 0; i < cards.size(); ++i) {
+        const Card& c = cards[i];
         if (!isUserInScope(c.userId, userIdFilter)) continue;
+        string recordLabel = "第 " + to_string(i + 1) + " 条卡片";
         if (c.difficulty < 1 || c.difficulty > 5) {
-            cout << "  卡片 ID " << c.cardId << " 难度超出 1~5：" << c.difficulty << "\n";
+            cout << "  " << recordLabel << " 难度超出 1~5：" << c.difficulty << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
         if (c.mastery < 0 || c.mastery > 100) {
-            cout << "  卡片 ID " << c.cardId << " 掌握度超出 0~100：" << c.mastery << "\n";
+            cout << "  " << recordLabel << " 掌握度超出 0~100：" << c.mastery << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
         if (c.intervalDays < 1) {
-            cout << "  卡片 ID " << c.cardId << " 复习间隔小于 1：" << c.intervalDays << "\n";
+            cout << "  " << recordLabel << " 复习间隔小于 1：" << c.intervalDays << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
         if (!isValidDate(c.createDate)) {
-            cout << "  卡片 ID " << c.cardId << " 创建日期无效：" << c.createDate << "\n";
+            cout << "  " << recordLabel << " 创建日期无效：" << c.createDate << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
         if (!c.lastReviewDate.empty() && !isValidDate(c.lastReviewDate)) {
-            cout << "  卡片 ID " << c.cardId << " 最近复习日期无效：" << c.lastReviewDate << "\n";
+            cout << "  " << recordLabel << " 最近复习日期无效：" << c.lastReviewDate << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
         if (!isValidDate(c.nextReviewDate)) {
-            cout << "  卡片 ID " << c.cardId << " 下次复习日期无效：" << c.nextReviewDate << "\n";
+            cout << "  " << recordLabel << " 下次复习日期无效：" << c.nextReviewDate << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
     }
 
-    for (const WrongQuestion& w : wrongs) {
+    for (size_t i = 0; i < wrongs.size(); ++i) {
+        const WrongQuestion& w = wrongs[i];
         if (!isUserInScope(w.userId, userIdFilter)) continue;
+        string recordLabel = "第 " + to_string(i + 1) + " 条错题";
         if (w.mastery < 0 || w.mastery > 100) {
-            cout << "  错题 ID " << w.wrongId << " 掌握度超出 0~100：" << w.mastery << "\n";
+            cout << "  " << recordLabel << " 掌握度超出 0~100：" << w.mastery << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
         if (w.intervalDays < 1) {
-            cout << "  错题 ID " << w.wrongId << " 复习间隔小于 1：" << w.intervalDays << "\n";
+            cout << "  " << recordLabel << " 复习间隔小于 1：" << w.intervalDays << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
         if (!isValidDate(w.createDate)) {
-            cout << "  错题 ID " << w.wrongId << " 创建日期无效：" << w.createDate << "\n";
+            cout << "  " << recordLabel << " 创建日期无效：" << w.createDate << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
         if (!w.lastReviewDate.empty() && !isValidDate(w.lastReviewDate)) {
-            cout << "  错题 ID " << w.wrongId << " 最近复习日期无效：" << w.lastReviewDate << "\n";
+            cout << "  " << recordLabel << " 最近复习日期无效：" << w.lastReviewDate << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
         if (!isValidDate(w.nextReviewDate)) {
-            cout << "  错题 ID " << w.wrongId << " 下次复习日期无效：" << w.nextReviewDate << "\n";
+            cout << "  " << recordLabel << " 下次复习日期无效：" << w.nextReviewDate << "\n";
             report.fieldIssueCount++;
             report.autoFixableCount++;
         }
@@ -204,7 +206,8 @@ static DataConsistencyReport inspectDataConsistency(int userIdFilter) {
 }
 
 static void printConsistencySummary(const DataConsistencyReport& report) {
-    cout << "\n[检查结果]\n";
+    cout << "\n";
+    printTuiSection("检查结果");
     cout << "  发现问题：" << report.issueCount << " 项\n";
     cout << "  可自动修复：" << report.autoFixableCount << " 项\n";
     cout << "  需人工处理：" << (report.issueCount - report.autoFixableCount) << " 项\n";
@@ -277,9 +280,7 @@ static int repairDataConsistency(const DataConsistencyReport& report, int userId
 
 void showDeletedCardsOfCurrentUser() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     已删除的知识卡片\n";
-    cout << "==============================\n";
+    renderPageHeader("已删除的知识卡片", "查看当前用户回收站中的知识卡片。");
     
     currentDeletedCardMap.clear();
     for (size_t i = 0; i < cards.size(); ++i) {
@@ -289,7 +290,7 @@ void showDeletedCardsOfCurrentUser() {
     }
     
     if (currentDeletedCardMap.empty()) {
-        cout << "当前没有已删除的卡片。\n";
+        printTuiNotice(TuiNoticeLevel::Info, "当前没有已删除的卡片。");
     } else {
         for (size_t i = 0; i < currentDeletedCardMap.size(); ++i) {
             const Card& c = cards[currentDeletedCardMap[i]];
@@ -302,9 +303,7 @@ void showDeletedCardsOfCurrentUser() {
 
 void showDeletedWrongsOfCurrentUser() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "      已删除的错题\n";
-    cout << "==============================\n";
+    renderPageHeader("已删除的错题", "查看当前用户回收站中的错题记录。");
     
     currentDeletedWrongMap.clear();
     for (size_t i = 0; i < wrongs.size(); ++i) {
@@ -314,7 +313,7 @@ void showDeletedWrongsOfCurrentUser() {
     }
     
     if (currentDeletedWrongMap.empty()) {
-        cout << "当前没有已删除的错题。\n";
+        printTuiNotice(TuiNoticeLevel::Info, "当前没有已删除的错题。");
     } else {
         for (size_t i = 0; i < currentDeletedWrongMap.size(); ++i) {
             const WrongQuestion& w = wrongs[currentDeletedWrongMap[i]];
@@ -328,8 +327,11 @@ void showDeletedWrongsOfCurrentUser() {
 }
 
 bool restoreCard() {
+    clearScreen();
+    renderPageHeader("恢复知识卡片", "根据回收站展示序号恢复逻辑删除的卡片。");
+
     if (currentDeletedCardMap.empty()) {
-        cout << "\n请先使用“1. 查看已删除卡片”生成列表。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "请先使用“查看已删除卡片”生成列表。");
         return false;
     }
 
@@ -341,20 +343,20 @@ bool restoreCard() {
 
     int displayIdx;
     if (!parseInt(line, displayIdx) || displayIdx < 1 || displayIdx > static_cast<int>(currentDeletedCardMap.size())) {
-        cout << "序号无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         return false;
     }
     
     int found = currentDeletedCardMap[displayIdx - 1];
     if (cards[found].active) {
-        cout << "该卡片已经是正常状态，无需恢复。\n";
+        printTuiNotice(TuiNoticeLevel::Info, "该卡片已经是正常状态，无需恢复。");
         return false;
     }
 
     // 恢复只改变 active，不重算复习计划；用户可在今日复习或数据检查中继续处理状态。
     cards[found].active = true;
     saveCards();
-    cout << "卡片恢复成功！\n";
+    printTuiNotice(TuiNoticeLevel::Success, "卡片恢复成功。");
     
     // 恢复后最好清空 map，防止旧映射错乱
     currentDeletedCardMap.clear();
@@ -362,8 +364,11 @@ bool restoreCard() {
 }
 
 bool restoreWrong() {
+    clearScreen();
+    renderPageHeader("恢复错题", "根据回收站展示序号恢复逻辑删除的错题。");
+
     if (currentDeletedWrongMap.empty()) {
-        cout << "\n请先使用“3. 查看已删除错题”生成列表。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "请先使用“查看已删除错题”生成列表。");
         return false;
     }
 
@@ -375,20 +380,20 @@ bool restoreWrong() {
 
     int displayIdx;
     if (!parseInt(line, displayIdx) || displayIdx < 1 || displayIdx > static_cast<int>(currentDeletedWrongMap.size())) {
-        cout << "序号无效。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "序号无效。");
         return false;
     }
     
     int found = currentDeletedWrongMap[displayIdx - 1];
     if (wrongs[found].active) {
-        cout << "该错题已经是正常状态，无需恢复。\n";
+        printTuiNotice(TuiNoticeLevel::Info, "该错题已经是正常状态，无需恢复。");
         return false;
     }
 
     // 关联卡片是否仍有效由数据一致性检查负责，恢复错题本身不自动生成卡片。
     wrongs[found].active = true;
     saveWrongs();
-    cout << "错题恢复成功！\n";
+    printTuiNotice(TuiNoticeLevel::Success, "错题恢复成功。");
     
     currentDeletedWrongMap.clear();
     return true;
@@ -396,17 +401,15 @@ bool restoreWrong() {
 
 void physicalDeleteInvalidRecords() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "    彻底清理回收站 (物理删除)\n";
-    cout << "==============================\n";
+    renderPageHeader("彻底清理回收站", "永久删除当前用户已逻辑删除的卡片和错题。");
     
-    cout << "警告：此操作将永久抹除当前用户所有已删除的卡片和错题，无法恢复！\n";
+    printTuiNotice(TuiNoticeLevel::Warning, "此操作将永久抹除当前用户所有已删除的卡片和错题，无法恢复。");
     cout << "确定要继续吗？(y/n): ";
     string line;
     getline(cin, line);
     line = trim(line);
     if (line != "y" && line != "Y") {
-        cout << "已取消物理删除。\n";
+        printTuiNotice(TuiNoticeLevel::Info, "已取消物理删除。");
         return;
     }
 
@@ -434,7 +437,7 @@ void physicalDeleteInvalidRecords() {
     size_t deletedCards = beforeCards - cards.size();
     size_t deletedWrongs = beforeWrongs - wrongs.size();
 
-    cout << "清理完毕！\n";
+    printTuiNotice(TuiNoticeLevel::Success, "回收站清理完毕。");
     cout << "共彻底物理删除 " << deletedCards << " 张知识卡片。\n";
     cout << "共彻底物理删除 " << deletedWrongs << " 道错题记录。\n";
     
@@ -445,10 +448,8 @@ void physicalDeleteInvalidRecords() {
 
 void runDataConsistencyCheck() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     数据一致性检查工具\n";
-    cout << "==============================\n";
-    cout << "检查范围：" << describeUserScope(currentUserId) << "\n";
+    renderPageHeader("数据一致性检查工具", "扫描失效关联、字段范围和非法日期。");
+    printTuiNotice(TuiNoticeLevel::Info, "检查范围：" + describeUserScope(currentUserId));
 
     DataConsistencyReport report = inspectDataConsistency(currentUserId);
     printConsistencySummary(report);
@@ -463,14 +464,14 @@ void runDataConsistencyCheck() {
     getline(cin, line);
     line = trim(line);
     if (line != "y" && line != "Y") {
-        cout << "已取消自动修复。\n";
+        printTuiNotice(TuiNoticeLevel::Info, "已取消自动修复。");
         pauseScreen();
         return;
     }
 
     int repairedCount = repairDataConsistency(report, currentUserId);
 
-    cout << "\n自动修复完成，已修复 " << repairedCount << " 条记录或关联。\n";
+    printTuiNotice(TuiNoticeLevel::Success, "自动修复完成，已修复 " + to_string(repairedCount) + " 条记录或关联。");
     pauseScreen();
 }
 
@@ -503,23 +504,21 @@ int runDataConsistencyCli(bool fix, int userIdFilter) {
 void showMaintenanceMenu() {
     while (true) {
         clearScreen();
-        cout << "==============================\n";
-        cout << "       数据维护\n";
-        cout << "==============================\n";
-        cout << "1. 查看已删除卡片\n";
-        cout << "2. 恢复知识卡片\n";
-        cout << "3. 查看已删除错题\n";
-        cout << "4. 恢复错题\n";
-        cout << "5. 彻底清空回收站\n";
-        cout << "6. 数据一致性检查\n";
-        cout << "0. 返回主菜单\n";
-        cout << "请选择：";
+        renderSubMenu("数据维护", "恢复误删内容，清理回收站并检查数据一致性", {
+            {"1", "查看已删除卡片", "cards"},
+            {"2", "恢复知识卡片", "restore"},
+            {"3", "查看已删除错题", "wrongs"},
+            {"4", "恢复错题", "restore"},
+            {"5", "彻底清空回收站", "purge"},
+            {"6", "数据一致性检查", "check"},
+            {"0", "返回主菜单", "back"}
+        });
 
         string line;
         if (!getline(cin, line)) return;
         int choice;
         if (!parseInt(line, choice)) {
-            cout << "输入无效，请重新输入。\n";
+            printTuiNotice(TuiNoticeLevel::Error, "输入无效，请重新输入。");
             pauseScreen();
             continue;
         }
@@ -544,7 +543,7 @@ void showMaintenanceMenu() {
                 break;
             case 0: return;
             default:
-                cout << "菜单选项不存在。\n";
+                printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
                 pauseScreen();
         }
     }

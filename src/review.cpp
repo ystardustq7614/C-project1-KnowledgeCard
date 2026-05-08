@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "storage.h"
 #include "utils.h"
+#include "tui.h"
 #include <iostream>
 #include <vector>
 #include "algo_sm2.h"
@@ -92,13 +93,11 @@ vector<ReviewTask> generateTodayTasks() {
 
 void showTodayTasks() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     今日待复习列表\n";
-    cout << "==============================\n";
+    renderPageHeader("今日待复习列表", "按优先级展示当前需要复习的卡片和错题。");
 
     vector<ReviewTask> tasks = generateTodayTasks();
     if (tasks.empty()) {
-        cout << "今天没有需要复习的内容，太棒了！\n";
+        printTuiNotice(TuiNoticeLevel::Success, "今天没有需要复习的内容。");
         pauseScreen();
         return;
     }
@@ -108,7 +107,6 @@ void showTodayTasks() {
         const ReviewTask& t = tasks[i];
         string typeLabel = (t.itemType == "card") ? "[卡片]" : "[错题]";
         cout << "  " << (i + 1) << ". " << typeLabel
-             << " [" << t.itemId << "] "
              << t.title
              << " | " << t.subject
              << " | 到期:" << t.dueDate
@@ -147,7 +145,7 @@ static void reviewOneCard(int cardIndex) {
         if (parseInt(line, result) && result >= 1 && result <= 3) {
             break;
         }
-        cout << "输入无效，请输入 1、2 或 3。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "输入无效，请输入 1、2 或 3。");
     }
 
     // 先保存旧值，日志需要记录复习前后的状态差异。
@@ -171,7 +169,7 @@ static void reviewOneCard(int cardIndex) {
 
     // 展示更新结果
     string resultLabel = (result == 1) ? "忘记" : (result == 2) ? "模糊" : "记牢";
-    cout << "\n复习结果：" << resultLabel << "\n";
+    printTuiNotice(TuiNoticeLevel::Success, "复习结果：" + resultLabel);
     cout << "掌握度：" << oldMastery << " → " << c.mastery << "\n";
     cout << "间  隔：" << oldInterval << " → " << c.intervalDays << " 天\n";
     cout << "下次复习：" << c.nextReviewDate << "\n";
@@ -209,7 +207,7 @@ static void reviewOneWrong(int wrongIndex) {
         if (parseInt(line, result) && result >= 1 && result <= 3) {
             break;
         }
-        cout << "输入无效，请输入 1、2 或 3。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "输入无效，请输入 1、2 或 3。");
     }
 
     // 旧值用于审计日志，不能在调用算法后再读取。
@@ -233,7 +231,7 @@ static void reviewOneWrong(int wrongIndex) {
 
     // 展示更新结果
     string resultLabel = (result == 1) ? "忘记" : (result == 2) ? "模糊" : "记牢";
-    cout << "\n复习结果：" << resultLabel << "\n";
+    printTuiNotice(TuiNoticeLevel::Success, "复习结果：" + resultLabel);
     cout << "掌握度：" << oldMastery << " → " << w.mastery << "\n";
     cout << "间  隔：" << oldInterval << " → " << w.intervalDays << " 天\n";
     cout << "下次复习：" << w.nextReviewDate << "\n";
@@ -245,13 +243,11 @@ static void reviewOneWrong(int wrongIndex) {
 
 void startReviewSession() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       开始复习\n";
-    cout << "==============================\n";
+    renderPageHeader("开始复习", "逐项完成今日到期材料，并即时写入复习日志。");
 
     vector<ReviewTask> tasks = generateTodayTasks();
     if (tasks.empty()) {
-        cout << "今天没有需要复习的内容，太棒了！\n";
+        printTuiNotice(TuiNoticeLevel::Success, "今天没有需要复习的内容。");
         pauseScreen();
         return;
     }
@@ -262,7 +258,9 @@ void startReviewSession() {
     for (size_t ti = 0; ti < tasks.size(); ++ti) {
         const ReviewTask& task = tasks[ti];
 
-        cout << "\n========== 第 " << (ti + 1) << "/" << tasks.size() << " 项 ==========\n\n";
+        cout << "\n";
+        printTuiSection("第 " + std::to_string(ti + 1) + "/" + std::to_string(tasks.size()) + " 项");
+        cout << "\n";
 
         if (task.itemType == "card") {
             // 任务生成后记录可能被删除或切换用户；复习前按 ID 重新校验可见性。
@@ -276,7 +274,7 @@ void startReviewSession() {
                 }
             }
             if (idx == -1) {
-                cout << "卡片 [" << task.itemId << "] 已不可用，跳过。\n";
+                printTuiNotice(TuiNoticeLevel::Warning, "当前卡片已不可用，跳过。");
             } else {
                 reviewOneCard(idx);
                 completed++;
@@ -292,7 +290,7 @@ void startReviewSession() {
                 }
             }
             if (idx == -1) {
-                cout << "错题 [" << task.itemId << "] 已不可用，跳过。\n";
+                printTuiNotice(TuiNoticeLevel::Warning, "当前错题已不可用，跳过。");
             } else {
                 reviewOneWrong(idx);
                 completed++;
@@ -306,13 +304,13 @@ void startReviewSession() {
             getline(cin, line);
             line = trim(line);
             if (line == "q" || line == "Q") {
-                cout << "已退出复习。\n";
+                printTuiNotice(TuiNoticeLevel::Info, "已退出复习。");
                 break;
             }
         }
     }
 
-    cout << "\n本次复习完成 " << completed << " 项。\n";
+    printTuiNotice(TuiNoticeLevel::Success, "本次复习完成 " + std::to_string(completed) + " 项。");
     pauseScreen();
 }
 
@@ -342,9 +340,7 @@ void addReviewLog(int itemId, const string& itemType, int result,
 
 void showReviewHistory() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       复习历史\n";
-    cout << "==============================\n";
+    renderPageHeader("复习历史", "展示当前用户的复习日志，最新记录在前。");
 
     // 日志按用户过滤，但不校验 itemId 当前是否仍可见；历史记录应保留被删除对象的复习轨迹。
     vector<int> userLogIndices;
@@ -355,7 +351,7 @@ void showReviewHistory() {
     }
 
     if (userLogIndices.empty()) {
-        cout << "暂无复习记录。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "暂无复习记录。");
         pauseScreen();
         return;
     }
@@ -368,9 +364,9 @@ void showReviewHistory() {
         string typeLabel = (lg.itemType == "card") ? "卡片" : "错题";
         string resultLabel = (lg.result == 1) ? "忘记" : (lg.result == 2) ? "模糊" : (lg.result == 3) ? "记牢" : "未知";
 
-        cout << "  [" << lg.logId << "] "
+        cout << "  [" << (showCount + 1) << "] "
              << lg.reviewDate
-             << " | " << typeLabel << "#" << lg.itemId
+             << " | " << typeLabel
              << " | 结果:" << resultLabel
              << " | 掌握:" << lg.oldMastery << "→" << lg.newMastery
              << " | 间隔:" << lg.oldInterval << "→" << lg.newInterval << "天"
@@ -397,20 +393,18 @@ void showReviewHistory() {
 void showReviewMenu() {
     while (true) {
         clearScreen();
-        cout << "==============================\n";
-        cout << "       今日复习\n";
-        cout << "==============================\n";
-        cout << "1. 查看今日待复习列表\n";
-        cout << "2. 开始复习\n";
-        cout << "3. 查看复习历史\n";
-        cout << "0. 返回主菜单\n";
-        cout << "请选择：";
+        renderSubMenu("今日复习", "查看待复习任务，完成反馈并写入复习日志", {
+            {"1", "查看今日待复习列表", "queue"},
+            {"2", "开始复习", "start"},
+            {"3", "查看复习历史", "history"},
+            {"0", "返回主菜单", "back"}
+        });
 
         string line;
         if (!getline(cin, line)) return;
         int choice;
         if (!parseInt(line, choice)) {
-            cout << "输入无效，请重新输入。\n";
+            printTuiNotice(TuiNoticeLevel::Error, "输入无效，请重新输入。");
             pauseScreen();
             continue;
         }
@@ -421,7 +415,7 @@ void showReviewMenu() {
             case 3: showReviewHistory();   break;
             case 0: return;
             default:
-                cout << "菜单选项不存在。\n";
+                printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
                 pauseScreen();
         }
     }

@@ -18,7 +18,7 @@
 // 表示：本地账号。
 // 注意：当前是教学/MVP 项目，密码明文存储；不适合作为真实账号系统复用。
 struct User {
-    int userId;             // 自增整数 ID（注册时分配）
+    int userId;             // 用户内部 ID（注册时分配）
     std::string username;   // 登录名
     std::string password;   // 明文密码
     std::string createDate; // "YYYY-MM-DD" 格式的创建日期
@@ -29,8 +29,8 @@ struct User {
 struct Card {
 
     //身份与分类
-    int cardId;             // 卡片唯一 ID
-    int userId;             // 属于哪个用户（外键，关联到 User.userId）
+    int cardId;             // 卡片内部 ID
+    int userId;             // 所属用户内部 ID（关联到 User.userId）
     std::string subject;    // 科目
     std::string chapter;    // 章节
     std::string title;      // 卡片标题
@@ -56,8 +56,8 @@ struct Card {
 // 表示：一个独立错题记录，也可通过 linkedCardId 关联到由错题生成的知识卡片。
 // 注意：linkedCardId = -1 表示未关联；关联有效性由 maintenance.cpp 检查和修复。
 struct WrongQuestion {
-    int wrongId;            // 错题唯一 ID
-    int userId;             // 所属用户
+    int wrongId;            // 错题内部 ID
+    int userId;             // 所属用户内部 ID
     std::string subject;        // 科目
     std::string chapter;        // 章节
     std::string question;       // 题目内容
@@ -65,7 +65,7 @@ struct WrongQuestion {
     std::string wrongAnswer;    // 你当时写错的答案
     std::string reason;         // 错因分析（自由文本）
     std::string errorType;      // V1.1 新增：错因类型（概念不清/记忆错误/粗心/审题失误/计算错误/方法不会）
-    int linkedCardId;       //  关联的知识卡片 ID（把错题和知识点连起来）。默认 -1，V1.1 正式启用
+    int linkedCardId;       // 关联的知识卡片内部 ID。默认 -1，V1.1 正式启用
 
     // 错题复用与 Card 相同的复习调度字段，便于 review.cpp 用统一流程处理两类材料。
     int mastery;
@@ -81,9 +81,9 @@ struct WrongQuestion {
 // 表示：一次复习动作的审计记录。
 // 注意：日志只追加，不反向驱动业务状态；卡片/错题的当前复习状态仍以各自记录为准。
 struct ReviewLog {
-    int logId;              // 日志唯一 ID
-    int userId;             // 谁复习的
-    int itemId;             // 复习的是哪个东西（卡片 ID 或 错题 ID）
+    int logId;              // 日志内部 ID
+    int userId;             // 复习者内部 ID
+    int itemId;             // 被复习对象的内部 ID
     std::string itemType;   // "card" 或 "wrong"
     std::string reviewDate; // 复习日期
     int result;             // 复习结果 0=不会  1=模糊  2=会
@@ -94,9 +94,9 @@ struct ReviewLog {
 };
 
 // 表示：今日复习列表中的运行时任务，不落盘。
-// 说明：itemType + itemId 才能唯一定位对象，因为卡片和错题使用不同 ID 空间。
+// 说明：itemType + itemId 才能唯一定位对象，因为卡片和错题使用不同内部 ID 空间。
 struct ReviewTask {
-    int itemId;         // 卡片/错题的 ID
+    int itemId;         // 卡片/错题的内部 ID
     std::string itemType; // "card" 或 "wrong"
     std::string subject;  // 科目
     std::string title;    // 标题（显示用）

@@ -13,7 +13,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\run_all_tests.ps1
 全部通过时，脚本返回退出码 `0`，并输出：
 
 ```text
-[v1.3.8] All tests passed
+[v1.4.4] All tests passed
 ```
 
 如果总入口失败，再按下面的测试分层单独运行对应脚本。
@@ -67,8 +67,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\run_cli_checks.ps1
 - `PROJECT1_DATA_DIR` 环境变量可指定数据目录。
 - 参数错误返回 `2`。
 - 不存在用户返回 `2`。
-- 失效 `linkedCardId` 检测返回 `1`。
-- 失效 `linkedCardId` 自动修复返回 `0`。
+- 失效错题转卡关联检测返回 `1`。
+- 失效错题转卡关联自动修复返回 `0`。
 - 非法字段检测返回 `1`。
 - 非法字段自动修复返回 `0`。
 
@@ -103,7 +103,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\test_e2e_flow.ps1
 6. 将错题转换为知识卡片。
 7. 查看全部卡片。
 8. 退出程序。
-9. 检查 `wrongs.txt` 的 `linkedCardId` 指向真实有效卡片。
+9. 检查错题转卡关联字段指向真实有效卡片。
 10. 检查卡片和错题文本字段中的 `|`、换行能正确转义和解码。
 11. 执行 `--check-data`，要求返回 `0`。
 

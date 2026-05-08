@@ -14,7 +14,7 @@ $script:E2ETmpParent = Join-Path $script:E2EProjectRoot ".test_tmp"
 
 function Write-E2EStep {
     param([string]$Message)
-    Write-Host "[v1.3.8] $Message"
+    Write-Host "[v1.4.4] $Message"
 }
 
 function Assert-PathInsideProject {

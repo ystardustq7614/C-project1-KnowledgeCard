@@ -9,7 +9,7 @@ param(
 - 覆盖错题分支：新增、查看、修改、查询、分类、多条件、错题转卡片、重复转卡保护和逻辑删除。
 
 关键约束：
-- 同一道错题重复执行转卡应只保留一个有效 linkedCardId，不应生成第二张关联卡。
+- 同一道错题重复执行转卡应只保留一个有效错题转卡关联，不应生成第二张关联卡。
 - 断言同时检查 wrongs.txt 和 cards.txt，确保跨模块联动真实落盘。
 #>
 
@@ -131,7 +131,7 @@ try {
     Assert-True -Label "updated wrong converted once" -Condition ($updatedWrong[9] -ne "-1")
     Assert-Equal -Label "updated wrong deleted by branch flow" -Actual $updatedWrong[17] -Expected "0"
 
-    # linkedCardId 指向的卡片必须存在且 active，才能证明错题转卡片链路完整。
+    # 错题转卡关联字段指向的卡片必须存在且 active，才能证明错题转卡片链路完整。
     $convertedCard = Get-RequiredLine `
         -Path $cardsFile `
         -Predicate { param($parts) $parts.Count -ge 17 -and $parts[0] -eq $script:updatedWrong[9] -and $parts[1] -eq $script:userId -and $parts[16] -eq "1" } `

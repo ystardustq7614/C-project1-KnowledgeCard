@@ -23,7 +23,7 @@ $algorithmTestExe = Join-Path $tmpRoot "test_algorithms.exe"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.8] $Message"
+    Write-Host "[v1.4.4] $Message"
 }
 
 function Assert-PathInsideProject {

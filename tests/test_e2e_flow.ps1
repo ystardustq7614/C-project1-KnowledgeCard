@@ -27,7 +27,7 @@ $outputFile = Join-Path $tmpRoot "e2e_output.log"
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[v1.3.8] $Message"
+    Write-Host "[v1.4.4] $Message"
 }
 
 function Assert-PathInsideProject {
@@ -128,6 +128,11 @@ function Decode-StorageField {
     return $builder.ToString()
 }
 
+function Join-UnicodeChars {
+    param([int[]]$CodePoints)
+    return -join ($CodePoints | ForEach-Object { [char]$_ })
+}
+
 function Get-RequiredLine {
     param(
         [string]$Path,
@@ -188,7 +193,7 @@ try {
 
     $script:ResolvedExe = (Resolve-Path $ExePath).Path
 
-    # 每轮主链路测试从空文件启动，避免历史数据影响 cardId/wrongId 和断言定位。
+    # 每轮主链路测试从空文件启动，避免历史数据影响持久化主键和断言定位。
     Remove-SafeDirectory $tmpRoot
     New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
     foreach ($name in @("users.txt", "cards.txt", "wrongs.txt", "review_logs.txt")) {
@@ -265,6 +270,23 @@ try {
         -InputText $inputText `
         -OutputPath $outputFile
 
+    $interactiveOutput = [System.IO.File]::ReadAllText($outputFile, $utf8NoBom)
+    $cardCreatePrefix = Join-UnicodeChars @(0x5361, 0x7247, 0x521B, 0x5EFA, 0x6210, 0x529F, 0xFF0C, 0x7F16, 0x53F7, 0xFF1A)
+    $conversionPrefix = Join-UnicodeChars @(0x5DF2, 0x751F, 0x6210, 0x65B0, 0x5361, 0x7247, 0xFF08, 0x7F16, 0x53F7, 0xFF1A)
+    $linkedCardPrefix = Join-UnicodeChars @(0x5173, 0x8054, 0x5361, 0x7247, 0xFF1A)
+    $cardCreateLeaksId = [regex]::IsMatch($interactiveOutput, [regex]::Escape($cardCreatePrefix) + "\d+")
+    $conversionLeaksId = [regex]::IsMatch($interactiveOutput, [regex]::Escape($conversionPrefix) + "\d+")
+    $linkedCardLeaksId = [regex]::IsMatch($interactiveOutput, [regex]::Escape($linkedCardPrefix) + "\d+")
+    Assert-True `
+        -Label "card creation output hides internal card id" `
+        -Condition (-not $cardCreateLeaksId)
+    Assert-True `
+        -Label "wrong conversion output hides generated card id" `
+        -Condition (-not $conversionLeaksId)
+    Assert-True `
+        -Label "wrong detail output hides linked card id" `
+        -Condition (-not $linkedCardLeaksId)
+
     $usersFile = Join-Path $dataDir "users.txt"
     $cardsFile = Join-Path $dataDir "cards.txt"
     $wrongsFile = Join-Path $dataDir "wrongs.txt"
@@ -298,11 +320,11 @@ try {
     $linkedCardId = $wrongParts[9]
     Assert-True -Label "wrong question has linked card" -Condition ($linkedCardId -ne "-1")
 
-    # 错题转卡片需要同时满足 wrongs.txt 的 linkedCardId 和 cards.txt 中真实可见卡片。
+    # 错题转卡片需要同时满足 wrongs.txt 的关联字段和 cards.txt 中真实可见卡片。
     $convertedCard = Get-RequiredLine `
         -Path $cardsFile `
         -Predicate { param($parts) $parts.Count -ge 17 -and $parts[0] -eq $linkedCardId -and $parts[1] -eq $userId -and $parts[16] -eq "1" } `
-        -FailureMessage "converted card referenced by linkedCardId not found"
+        -FailureMessage "converted card referenced by wrong-to-card link not found"
     Assert-Equal -Label "converted card front matches wrong question" -Actual (Decode-StorageField $convertedCard[5]) -Expected $expectedWrongQuestion
     $convertedBackDecoded = Decode-StorageField $convertedCard[6]
     Assert-True -Label "converted card back starts with correct answer" -Condition ($convertedBackDecoded.StartsWith($expectedWrongCorrect))

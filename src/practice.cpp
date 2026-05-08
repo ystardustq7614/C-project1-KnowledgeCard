@@ -1,6 +1,7 @@
 #include "practice.h"
 #include "globals.h"
 #include "utils.h"
+#include "tui.h"
 #include "algo_recommend.h"
 #include <iostream>
 #include <vector>
@@ -38,13 +39,11 @@ static vector<int> getActiveCardIndices() {
 
 void startRandomPractice() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       随机抽查测试\n";
-    cout << "==============================\n";
+    renderPageHeader("随机抽查测试", "从当前有效卡片中随机抽题，不影响正式复习计划。");
 
     vector<int> pool = getActiveCardIndices();
     if (pool.empty()) {
-        cout << "当前没有可用卡片，无法进行练习。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "当前没有可用卡片，无法进行练习。");
         pauseScreen();
         return;
     }
@@ -58,7 +57,7 @@ void startRandomPractice() {
     int count = 10;
     if (!line.empty()) {
         if (!parseInt(line, count) || count <= 0) {
-            cout << "输入无效，系统将使用默认值 10。\n";
+            printTuiNotice(TuiNoticeLevel::Warning, "输入无效，系统将使用默认值 10。");
             count = 10;
         }
     }
@@ -74,11 +73,9 @@ void startRandomPractice() {
     int correctCount = 0;
     for (int i = 0; i < count; ++i) {
         clearScreen();
-        cout << "==============================\n";
-        cout << " 随机自测 (" << (i+1) << "/" << count << ")\n";
-        cout << "==============================\n";
-        
         const Card& c = cards[pool[i]];
+        renderPageHeader("随机自测 (" + std::to_string(i + 1) + "/" + std::to_string(count) + ")",
+                         c.subject + " / " + c.chapter);
         cout << "【" << c.subject << " - " << c.chapter << "】\n\n";
         cout << "题目：\n" << c.front << "\n\n";
         
@@ -100,20 +97,16 @@ void startRandomPractice() {
     }
 
     clearScreen();
-    cout << "==============================\n";
-    cout << "       自测练习结束\n";
-    cout << "==============================\n";
+    renderPageHeader("自测练习结束", "本次自测属于无压练习，不影响日常复习计划与系统掌握度。");
     cout << "共完成 " << count << " 道题。\n";
     cout << "答对 " << correctCount << " 道，正确率：" << (count > 0 ? (correctCount * 100 / count) : 0) << "%\n\n";
-    cout << "注：本次自测属于无压练习，不影响日常复习计划与系统掌握度。\n";
+    printTuiNotice(TuiNoticeLevel::Info, "本次自测属于无压练习，不影响日常复习计划与系统掌握度。");
     pauseScreen();
 }
 
 void startWeaknessPractice() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     薄弱点专项突破练习\n";
-    cout << "==============================\n";
+    renderPageHeader("薄弱点专项突破练习", "根据智能推荐锁定当前最薄弱章节。");
 
     vector<RecommendInputItem> inputs;
     for (const Card& c : cards) {
@@ -126,7 +119,7 @@ void startWeaknessPractice() {
     }
 
     if (inputs.empty()) {
-        cout << "当前没有任何可用数据，无法计算薄弱点。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "当前没有任何可用数据，无法计算薄弱点。");
         pauseScreen();
         return;
     }
@@ -134,7 +127,7 @@ void startWeaknessPractice() {
     // 专项练习只取最薄弱章节，保证一次练习目标明确。
     vector<RecommendResult> recs = calculateWeakestChapters(inputs, 1);
     if (recs.empty()) {
-        cout << "无法计算薄弱点。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "无法计算薄弱点。");
         pauseScreen();
         return;
     }
@@ -142,9 +135,9 @@ void startWeaknessPractice() {
     string targetSubject = recs[0].subject;
     string targetChapter = recs[0].chapter;
 
-    cout << "系统判定您的【最薄弱盲区】为：\n";
-    cout << "【" << targetSubject << " - " << targetChapter << "】 (平均掌握度低至: " << recs[0].avgMastery << " 分)\n\n";
-    
+    printTuiNotice(TuiNoticeLevel::Info,
+                   "系统判定您的最薄弱盲区为：" + targetSubject + " - " + targetChapter +
+                   "，平均掌握度：" + std::to_string(recs[0].avgMastery) + " 分。");
     cout << "正在为您抽取该章节的相关知识卡片...\n";
 
     vector<int> cardPool;
@@ -156,13 +149,13 @@ void startWeaknessPractice() {
     }
 
     if (cardPool.empty()) {
-        cout << "\n呃...该薄弱点下似乎全都是错题，暂时没有建立相关知识卡片用于测试。\n";
-        cout << "建议您先去【错题管理】中将部分错题转化为知识卡片！\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "该薄弱点下暂时没有相关知识卡片可用于测试。");
+        cout << "建议先在错题管理中将部分错题转化为知识卡片。\n";
         pauseScreen();
         return;
     }
 
-    cout << "找到 " << cardPool.size() << " 张相关卡片。按回车键开始专项歼灭战...\n";
+    cout << "找到 " << cardPool.size() << " 张相关卡片。按回车键开始专项练习...\n";
     string line;
     getline(cin, line);
 
@@ -176,9 +169,8 @@ void startWeaknessPractice() {
     int correctCount = 0;
     for (int i = 0; i < count; ++i) {
         clearScreen();
-        cout << "==============================\n";
-        cout << " 专项突破 (" << (i+1) << "/" << count << ") - " << targetChapter << "\n";
-        cout << "==============================\n";
+        renderPageHeader("专项突破 (" + std::to_string(i + 1) + "/" + std::to_string(count) + ")",
+                         targetSubject + " / " + targetChapter);
         
         const Card& c = cards[cardPool[i]];
         cout << "题目：\n" << c.front << "\n\n";
@@ -201,18 +193,16 @@ void startWeaknessPractice() {
     }
 
     clearScreen();
-    cout << "==============================\n";
-    cout << "       专项练习结束\n";
-    cout << "==============================\n";
+    renderPageHeader("专项练习结束", "本次专项练习不写入正式复习状态。");
     cout << "本次专项训练共完成 " << count << " 道题，成功答对 " << correctCount << " 道。\n";
     cout << "正确率：" << (count > 0 ? (correctCount * 100 / count) : 0) << "%\n\n";
     
     if (correctCount == count) {
-        cout << "太棒了！看来你已经克服了这个薄弱点，下次系统应该会推荐新的章节了！\n";
+        printTuiNotice(TuiNoticeLevel::Success, "本轮专项练习全部答对，下次系统可能会推荐新的章节。");
     } else if (correctCount * 100 / count >= 60) {
-        cout << "表现尚可，不过还有提升空间，建议结合错题本继续巩固！\n";
+        printTuiNotice(TuiNoticeLevel::Info, "本轮表现基本稳定，建议结合错题本继续巩固。");
     } else {
-        cout << "革命尚未成功，同志仍需努力！请务必去【今日复习】强化一下该章节的记忆。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "正确率偏低，建议到今日复习中强化该章节记忆。");
     }
     pauseScreen();
 }
@@ -220,19 +210,17 @@ void startWeaknessPractice() {
 void showPracticeMenu() {
     while (true) {
         clearScreen();
-        cout << "==============================\n";
-        cout << "       自测练习中心\n";
-        cout << "==============================\n";
-        cout << "1. 随机抽查测试（脱敏无压测验）\n";
-        cout << "2. 薄弱点专项突破（基于智能推荐）\n";
-        cout << "0. 返回主菜单\n";
-        cout << "请选择：";
+        renderSubMenu("自测练习中心", "不改动复习计划的主动练习入口", {
+            {"1", "随机抽查测试", "quick check"},
+            {"2", "薄弱点专项突破", "recommended"},
+            {"0", "返回主菜单", "back"}
+        });
 
         string line;
         if (!getline(cin, line)) return;
         int choice;
         if (!parseInt(line, choice)) {
-            cout << "输入无效，请重新输入。\n";
+            printTuiNotice(TuiNoticeLevel::Error, "输入无效，请重新输入。");
             pauseScreen();
             continue;
         }
@@ -242,7 +230,7 @@ void showPracticeMenu() {
             case 2: startWeaknessPractice(); break;
             case 0: return;
             default:
-                cout << "菜单选项不存在。\n";
+                printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
                 pauseScreen();
         }
     }

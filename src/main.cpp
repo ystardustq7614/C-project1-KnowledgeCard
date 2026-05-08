@@ -12,6 +12,7 @@
 #include "stats.h"          // 统计分析
 #include "maintenance.h"    // 数据维护
 #include "utils.h"          // 工具函数（字符串、日期、界面）
+#include "tui.h"            // 轻量终端界面渲染
 #include "algo_decay.h"     // 记忆衰减算法
 #include "algo_recommend.h" // 弱项推荐算法
 #include "practice.h"       // 自测练习
@@ -105,7 +106,7 @@ static CliOptions parseCliOptions(int argc, char* argv[]) {
         } else if (arg == "--user-id") {
             if (i + 1 >= argc) {
                 options.valid = false;
-                options.errorMessage = "--user-id 需要跟一个整数用户 ID";
+                options.errorMessage = "--user-id 需要跟一个正整数";
                 return options;
             }
             int userId;
@@ -164,7 +165,7 @@ int main(int argc, char* argv[]) {
 
     if (cli.checkData) {
         if (cli.userIdFilter != -1 && findUserIndexById(cli.userIdFilter) == -1) {
-            cout << "[参数错误] 不存在用户 ID：" << cli.userIdFilter << "\n";
+            cout << "[参数错误] 不存在指定用户：" << cli.userIdFilter << "\n";
             return 2;
         }
         return runDataConsistencyCli(cli.fix, cli.userIdFilter);
@@ -216,8 +217,8 @@ void applyGlobalDecay() {
     }
 }
 
-// 主菜单展示推荐只读内存数据，不写入日志；推荐结果是当前时刻快照。
-void displayRecommendations() {
+// 主菜单视图只读内存数据，不写入日志；推荐结果和今日待复习数量都是当前时刻快照。
+vector<TuiRecommendation> buildTuiRecommendations() {
     vector<RecommendInputItem> inputs;
     for (const Card& c : cards) {
         if (c.userId != currentUserId || !c.active) continue;
@@ -228,31 +229,46 @@ void displayRecommendations() {
         inputs.push_back({w.subject, w.chapter, w.mastery});
     }
     
-    if (inputs.empty()) return;
+    vector<TuiRecommendation> viewItems;
+    if (inputs.empty()) return viewItems;
     
     // Top 3 与 README 中“主菜单展示三个薄弱点”的产品口径保持一致。
     vector<RecommendResult> recs = calculateWeakestChapters(inputs, 3);
-    if (!recs.empty()) {
-        cout << ANSI_BOLD << ANSI_YELLOW << "[智能推荐] 发现您的薄弱知识点（建议优先复习）：\n" << ANSI_RESET;
-        for (size_t i = 0; i < recs.size(); ++i) {
-            cout << ANSI_RED << "  ★ Top " << (i+1) << ": " << recs[i].subject << " - " << recs[i].chapter 
-                 << " (平均掌握度: " << recs[i].avgMastery << ", 包含 " << recs[i].itemCount << " 项)\n" << ANSI_RESET;
-        }
-        cout << ANSI_CYAN << "------------------------------\n" << ANSI_RESET;
+    for (const RecommendResult& rec : recs) {
+        viewItems.push_back({rec.subject, rec.chapter, rec.avgMastery, rec.itemCount});
     }
+    return viewItems;
+}
+
+TuiMainMenuView buildMainMenuView() {
+    TuiMainMenuView view;
+    view.username = currentUsername;
+    view.today = getTodayDate();
+    view.dataDirectory = getDataDirectory();
+    view.activeCardCount = 0;
+    view.activeWrongCount = 0;
+
+    for (const Card& c : cards) {
+        if (c.userId == currentUserId && c.active) {
+            ++view.activeCardCount;
+        }
+    }
+    for (const WrongQuestion& w : wrongs) {
+        if (w.userId == currentUserId && w.active) {
+            ++view.activeWrongCount;
+        }
+    }
+
+    view.todayReviewCount = static_cast<int>(generateTodayTasks().size());
+    view.recommendations = buildTuiRecommendations();
+    return view;
 }
 
 // ========== 一级菜单 ==========
 
 void showWelcomeMenu() {
     clearScreen();
-    cout << ANSI_CYAN << "==========================================\n" << ANSI_RESET;
-    cout << ANSI_BOLD << ANSI_GREEN << "        知识卡片与错题复习管理系统\n" << ANSI_RESET;
-    cout << ANSI_CYAN << "==========================================\n" << ANSI_RESET;
-    cout << "1. 用户登录\n";
-    cout << "2. 用户注册\n";
-    cout << "0. 退出系统\n";
-    cout << "请选择：";
+    renderWelcomeMenu();
 
     string line;
     if (!getline(cin, line)) {
@@ -263,7 +279,7 @@ void showWelcomeMenu() {
 
     int choice;
     if (!parseInt(line, choice)) {
-        cout << ANSI_RED << "输入无效，请重新输入。\n" << ANSI_RESET;
+        printTuiNotice(TuiNoticeLevel::Error, "输入无效，请重新输入。");
         pauseScreen();
         return;
     }
@@ -281,10 +297,10 @@ void showWelcomeMenu() {
             break;
         case 0:
             saveAllData();
-            cout << ANSI_YELLOW << "感谢使用，再见！\n" << ANSI_RESET;
+            printTuiNotice(TuiNoticeLevel::Info, "感谢使用，再见！");
             exit(0);                    // 直接退出进程
         default:                        // 输入了一个不在菜单里的数字
-            cout << ANSI_RED << "菜单选项不存在。\n" << ANSI_RESET;
+            printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
             pauseScreen();
     }
 }
@@ -294,22 +310,7 @@ void showWelcomeMenu() {
 void showMainMenu() {
     while (currentUserId != -1) {
         clearScreen();
-        cout << ANSI_CYAN << "==========================================\n" << ANSI_RESET;
-        cout << ANSI_BOLD << ANSI_GREEN << "    主菜单" << ANSI_RESET 
-             << "（当前用户：" << ANSI_YELLOW << currentUsername << ANSI_RESET << "）\n";
-        cout << ANSI_CYAN << "==========================================\n" << ANSI_RESET;
-        
-        displayRecommendations();
-        
-        cout << "1. 知识卡片管理\n";
-        cout << "2. 错题管理\n";
-        cout << "3. " << ANSI_BOLD << ANSI_BLUE << "今日复习\n" << ANSI_RESET;
-        cout << "4. " << ANSI_MAGENTA << "自测练习中心\n" << ANSI_RESET;
-        cout << "5. 统计分析\n";
-        cout << "6. 数据维护\n";
-        cout << "7. 修改密码\n";
-        cout << "0. 退出登录\n";
-        cout << "请选择：";
+        renderMainMenu(buildMainMenuView());
 
         string line;
         if (!getline(cin, line)) {
@@ -318,7 +319,7 @@ void showMainMenu() {
         }
         int choice;
         if (!parseInt(line, choice)) {
-            cout << ANSI_RED << "输入无效，请重新输入。\n" << ANSI_RESET;
+            printTuiNotice(TuiNoticeLevel::Error, "输入无效，请重新输入。");
             pauseScreen();
             continue;
         }
@@ -349,7 +350,7 @@ void showMainMenu() {
                 logoutUser();
                 break;
             default:
-                cout << "菜单选项不存在。\n";
+                printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
                 pauseScreen();
         }
     }

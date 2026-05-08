@@ -1,6 +1,7 @@
 #include "storage.h"
 #include "globals.h"
 #include "utils.h"
+#include "tui.h"
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -282,7 +283,7 @@ void saveUsers() {
     string path = userFile();
     ofstream fout(path);
     if (!fout.is_open()) {
-        cout << "[错误] 无法写入 " << path << endl;
+        printTuiNotice(TuiNoticeLevel::Error, "无法写入 " + path);
         return;
     }
     for (const User& u : users) {
@@ -298,7 +299,7 @@ void saveCards() {
     string path = cardFile();
     ofstream fout(path);
     if (!fout.is_open()) {
-        cout << "[错误] 无法写入 " << path << endl;
+        printTuiNotice(TuiNoticeLevel::Error, "无法写入 " + path);
         return;
     }
     for (const Card& c : cards) {
@@ -327,7 +328,7 @@ void saveWrongs() {
     string path = wrongFile();
     ofstream fout(path);
     if (!fout.is_open()) {
-        cout << "[错误] 无法写入 " << path << endl;
+        printTuiNotice(TuiNoticeLevel::Error, "无法写入 " + path);
         return;
     }
     for (const WrongQuestion& w : wrongs) {
@@ -357,7 +358,7 @@ void saveLogs() {
     string path = logFile();
     ofstream fout(path);
     if (!fout.is_open()) {
-        cout << "[错误] 无法写入 " << path << endl;
+        printTuiNotice(TuiNoticeLevel::Error, "无法写入 " + path);
         return;
     }
     for (const ReviewLog& lg : logs) {
@@ -391,7 +392,7 @@ void saveAllData() {
     saveLogs();
 }
 
-// ========== 编号生成 ==========
+// ========== 自增键生成 ==========
 
 int getNextUserId() {
     int maxId = 0;

@@ -5,7 +5,7 @@
 
 /*
 模块职责：
-- 管理文本数据目录、四类数据文件的初始化、加载、保存和自增编号生成。
+- 管理文本数据目录、四类数据文件的初始化、加载、保存和自增键生成。
 
 不负责：
 - 不判断当前登录用户权限，不做业务合法性修复；数据一致性修复由 maintenance.cpp 负责。
@@ -50,7 +50,7 @@ void saveLogs();
 void loadAllData();
 void saveAllData();
 
-// 编号生成（扫描容器最大值 +1）
+// 自增键生成（扫描容器最大值 +1）
 int getNextUserId();
 int getNextCardId();
 int getNextWrongId();

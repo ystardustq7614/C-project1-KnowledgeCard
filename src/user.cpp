@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "storage.h"
 #include "utils.h"
+#include "tui.h"
 #include <iostream>
 
 using std::cout;
@@ -45,9 +46,7 @@ int findUserIndexById(int userId) {
 
 bool registerUser() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       用户注册\n";
-    cout << "==============================\n";
+    renderPageHeader("用户注册", "创建一个本地学习账号。");
 
     string username, password, confirmPwd;
 
@@ -55,17 +54,17 @@ bool registerUser() {
     getline(cin, username);
     username = trim(username);
     if (username.empty()) {
-        cout << "用户名不能为空。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "用户名不能为空。");
         pauseScreen();
         return false;
     }
     if (username.find('|') != string::npos) {
-        cout << "用户名不允许包含 | 字符。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "用户名不允许包含 | 字符。");
         pauseScreen();
         return false;
     }
     if (usernameExists(username)) {
-        cout << "该用户名已被注册，请换一个。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "该用户名已被注册，请换一个。");
         pauseScreen();
         return false;
     }
@@ -74,12 +73,12 @@ bool registerUser() {
     getline(cin, password);
     password = trim(password);
     if (password.empty()) {
-        cout << "密码不能为空。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "密码不能为空。");
         pauseScreen();
         return false;
     }
     if (password.find('|') != string::npos) {
-        cout << "密码不允许包含 | 字符。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "密码不允许包含 | 字符。");
         pauseScreen();
         return false;
     }
@@ -88,7 +87,7 @@ bool registerUser() {
     getline(cin, confirmPwd);
     confirmPwd = trim(confirmPwd);
     if (password != confirmPwd) {
-        cout << "两次密码不一致。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "两次密码不一致。");
         pauseScreen();
         return false;
     }
@@ -103,7 +102,7 @@ bool registerUser() {
 
     saveUsers();
 
-    cout << "注册成功！用户名：" << username << "\n";
+    printTuiNotice(TuiNoticeLevel::Success, "注册成功，用户名：" + username);
     pauseScreen();
     return true;
 }
@@ -112,9 +111,7 @@ bool registerUser() {
 
 bool loginUser() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       用户登录\n";
-    cout << "==============================\n";
+    renderPageHeader("用户登录", "登录后进入个人学习数据空间。");
 
     string username, password;
 
@@ -124,7 +121,7 @@ bool loginUser() {
 
     int idx = findUserIndexByName(username);
     if (idx == -1) {
-        cout << "用户不存在。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "用户不存在。");
         pauseScreen();
         return false;
     }
@@ -134,7 +131,7 @@ bool loginUser() {
     password = trim(password);
 
     if (users[idx].password != password) {
-        cout << "密码错误。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "密码错误。");
         pauseScreen();
         return false;
     }
@@ -143,7 +140,7 @@ bool loginUser() {
     currentUserId   = users[idx].userId;
     currentUsername  = users[idx].username;
 
-    cout << "登录成功！欢迎，" << currentUsername << "。\n";
+    printTuiNotice(TuiNoticeLevel::Success, "登录成功，欢迎 " + currentUsername + "。");
     pauseScreen();
     return true;
 }
@@ -152,13 +149,11 @@ bool loginUser() {
 
 bool changePassword() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "       修改密码\n";
-    cout << "==============================\n";
+    renderPageHeader("修改密码", "更新当前账号的本地登录密码。");
 
     int idx = findUserIndexById(currentUserId);
     if (idx == -1) {
-        cout << "系统错误：找不到当前用户。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "系统错误：找不到当前用户。");
         pauseScreen();
         return false;
     }
@@ -170,7 +165,7 @@ bool changePassword() {
     oldPwd = trim(oldPwd);
 
     if (users[idx].password != oldPwd) {
-        cout << "旧密码错误。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "旧密码错误。");
         pauseScreen();
         return false;
     }
@@ -179,12 +174,12 @@ bool changePassword() {
     getline(cin, newPwd);
     newPwd = trim(newPwd);
     if (newPwd.empty()) {
-        cout << "新密码不能为空。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "新密码不能为空。");
         pauseScreen();
         return false;
     }
     if (newPwd.find('|') != string::npos) {
-        cout << "密码不允许包含 | 字符。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "密码不允许包含 | 字符。");
         pauseScreen();
         return false;
     }
@@ -193,7 +188,7 @@ bool changePassword() {
     getline(cin, confirmPwd);
     confirmPwd = trim(confirmPwd);
     if (newPwd != confirmPwd) {
-        cout << "两次密码不一致。\n";
+        printTuiNotice(TuiNoticeLevel::Error, "两次密码不一致。");
         pauseScreen();
         return false;
     }
@@ -201,7 +196,7 @@ bool changePassword() {
     users[idx].password = newPwd;
     saveUsers();
 
-    cout << "密码修改成功！\n";
+    printTuiNotice(TuiNoticeLevel::Success, "密码修改成功。");
     pauseScreen();
     return true;
 }
@@ -209,7 +204,7 @@ bool changePassword() {
 // ========== 退出登录 ==========
 
 void logoutUser() {
-    cout << "已退出登录，再见，" << currentUsername << "。\n";
+    printTuiNotice(TuiNoticeLevel::Info, "已退出登录，再见，" + currentUsername + "。");
     // 退出登录只清空会话状态，不卸载内存数据；重新登录同一进程仍复用已加载容器。
     currentUserId  = -1;
     currentUsername = "";

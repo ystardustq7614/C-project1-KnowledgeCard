@@ -1,6 +1,7 @@
 #include "stats.h"
 #include "globals.h"
 #include "utils.h"
+#include "tui.h"
 #include <iostream>
 #include <map>
 
@@ -25,9 +26,7 @@ using std::string;
 
 void statCardCount() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     卡片总数统计\n";
-    cout << "==============================\n";
+    renderPageHeader("卡片总数统计", "统计当前用户仍处于有效状态的知识卡片。");
 
     int count = 0;
     for (size_t i = 0; i < cards.size(); ++i) {
@@ -45,9 +44,7 @@ void statCardCount() {
 
 void statWrongCount() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     错题总数统计\n";
-    cout << "==============================\n";
+    renderPageHeader("错题总数统计", "统计当前用户仍处于有效状态的错题记录。");
 
     int count = 0;
     for (size_t i = 0; i < wrongs.size(); ++i) {
@@ -65,9 +62,7 @@ void statWrongCount() {
 
 void statSubjectDistribution() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     各学科分布统计\n";
-    cout << "==============================\n";
+    renderPageHeader("各学科分布统计", "对比知识卡片与错题在学科维度上的分布。");
 
     // 卡片和错题分开统计，避免用户误以为同一学科下两类材料数量可以直接合并。
     map<string, int> cardSubjects;
@@ -85,7 +80,7 @@ void statSubjectDistribution() {
     }
 
     if (cardSubjects.empty() && wrongSubjects.empty()) {
-        cout << "当前没有任何数据。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "当前没有任何可统计数据。");
         pauseScreen();
         return;
     }
@@ -99,6 +94,7 @@ void statSubjectDistribution() {
         allSubjects[it->first] = true;
     }
 
+    printTuiSection("学科分布");
     cout << "学科             卡片数   错题数\n";
     cout << "------------------------------\n";
     for (auto it = allSubjects.begin(); it != allSubjects.end(); ++it) {
@@ -124,9 +120,7 @@ void statSubjectDistribution() {
 
 void statDueTodayCount() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     今日待复习统计\n";
-    cout << "==============================\n";
+    renderPageHeader("今日待复习统计", "统计下次复习日期已到期的知识卡片和错题。");
 
     string today = getTodayDate();
     int cardDue = 0, wrongDue = 0;
@@ -158,9 +152,7 @@ void statDueTodayCount() {
 
 void statMasteryDistribution() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     掌握情况统计\n";
-    cout << "==============================\n";
+    renderPageHeader("掌握情况统计", "按薄弱、一般、熟练三档查看当前掌握度。");
 
     // 三档阈值是面向用户的统计口径，修改后需要同步 README 和演示脚本。
     int cLow = 0, cMid = 0, cHigh = 0;
@@ -184,19 +176,21 @@ void statMasteryDistribution() {
     int cTotal = cLow + cMid + cHigh;
     int wTotal = wLow + wMid + wHigh;
 
-    cout << "【知识卡片掌握分布】（共 " << cTotal << " 条）\n";
+    printTuiSection("知识卡片掌握分布（共 " + std::to_string(cTotal) + " 条）");
     cout << "  薄弱 (0~39) ：" << cLow << " 条\n";
     cout << "  一般 (40~69)：" << cMid << " 条\n";
     cout << "  熟练 (70~100)：" << cHigh << " 条\n";
 
-    cout << "\n【错题掌握分布】（共 " << wTotal << " 条）\n";
+    cout << "\n";
+    printTuiSection("错题掌握分布（共 " + std::to_string(wTotal) + " 条）");
     cout << "  薄弱 (0~39) ：" << wLow << " 条\n";
     cout << "  一般 (40~69)：" << wMid << " 条\n";
     cout << "  熟练 (70~100)：" << wHigh << " 条\n";
 
     // 每条记录一个 #，适合小型本地项目；大量数据时应改为按比例缩放。
     if (cTotal > 0 || wTotal > 0) {
-        cout << "\n【可视化】（# = 1 条）\n";
+        cout << "\n";
+        printTuiSection("可视化（# = 1 条）");
         if (cTotal > 0) {
             cout << "卡片 薄弱 : ";
             for (int j = 0; j < cLow; ++j) cout << "#";
@@ -230,9 +224,7 @@ void statMasteryDistribution() {
 
 void statReviewFrequency() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "   最近 7 天复习频率统计\n";
-    cout << "==============================\n";
+    renderPageHeader("最近 7 天复习频率统计", "根据复习日志查看近期复习次数。");
 
     string today = getTodayDate();
 
@@ -260,6 +252,7 @@ void statReviewFrequency() {
         if (counts[d] > maxCount) maxCount = counts[d];
     }
 
+    printTuiSection("复习频率");
     cout << "日期          复习次数\n";
     cout << "------------------------------\n";
     for (int d = 0; d < 7; ++d) {
@@ -285,9 +278,7 @@ void statReviewFrequency() {
 
 void statErrorTypeDistribution() {
     clearScreen();
-    cout << "==============================\n";
-    cout << "     错因分类统计\n";
-    cout << "==============================\n";
+    renderPageHeader("错因分类统计", "按固定错因标签统计当前有效错题。");
 
     // 固定错因列表与 wrong.cpp 保持同一统计口径；空值统一归入“未分类”。
     const string types[] = {
@@ -315,12 +306,13 @@ void statErrorTypeDistribution() {
     }
 
     if (total == 0) {
-        cout << "当前没有有效错题数据。\n";
+        printTuiNotice(TuiNoticeLevel::Warning, "当前没有有效错题数据。");
         pauseScreen();
         return;
     }
 
     cout << "当前用户有效错题共 " << total << " 条\n\n";
+    printTuiSection("错因类型");
     cout << "错因类型         数量\n";
     cout << "------------------------------\n";
     for (int t = 0; t < typeCount; ++t) {
@@ -334,7 +326,8 @@ void statErrorTypeDistribution() {
     cout << "------------------------------\n";
 
     // 错因分类通常数量不大，直接按条数绘制即可。
-    cout << "\n【可视化】（# = 1 条）\n";
+    cout << "\n";
+    printTuiSection("可视化（# = 1 条）");
     for (int t = 0; t < typeCount; ++t) {
         if (counts[t] > 0) {
             cout << types[t] << " : ";
@@ -358,24 +351,22 @@ void statErrorTypeDistribution() {
 void showStatsMenu() {
     while (true) {
         clearScreen();
-        cout << "==============================\n";
-        cout << "       统计分析\n";
-        cout << "==============================\n";
-        cout << "1. 卡片总数统计\n";
-        cout << "2. 错题总数统计\n";
-        cout << "3. 各学科分布统计\n";
-        cout << "4. 今日待复习统计\n";
-        cout << "5. 掌握情况统计\n";
-        cout << "6. 复习频率统计\n";
-        cout << "7. 错因分类统计\n";
-        cout << "0. 返回主菜单\n";
-        cout << "请选择：";
+        renderSubMenu("统计分析", "查看学习材料、复习节奏和错因分布", {
+            {"1", "卡片总数统计", "cards"},
+            {"2", "错题总数统计", "wrongs"},
+            {"3", "各学科分布统计", "subjects"},
+            {"4", "今日待复习统计", "due"},
+            {"5", "掌握情况统计", "mastery"},
+            {"6", "复习频率统计", "frequency"},
+            {"7", "错因分类统计", "error type"},
+            {"0", "返回主菜单", "back"}
+        });
 
         string line;
         if (!getline(cin, line)) return;
         int choice;
         if (!parseInt(line, choice)) {
-            cout << "输入无效，请重新输入。\n";
+            printTuiNotice(TuiNoticeLevel::Error, "输入无效，请重新输入。");
             pauseScreen();
             continue;
         }
@@ -390,7 +381,7 @@ void showStatsMenu() {
             case 7: statErrorTypeDistribution(); break;
             case 0: return;
             default:
-                cout << "菜单选项不存在。\n";
+                printTuiNotice(TuiNoticeLevel::Error, "菜单选项不存在。");
                 pauseScreen();
         }
     }
