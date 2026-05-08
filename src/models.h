@@ -86,7 +86,7 @@ struct ReviewLog {
     int itemId;             // 被复习对象的内部 ID
     std::string itemType;   // "card" 或 "wrong"
     std::string reviewDate; // 复习日期
-    int result;             // 复习结果 0=不会  1=模糊  2=会
+    int result;             // 复习结果 1=忘记  2=模糊  3=记牢
     int oldInterval;        // 复习前的间隔天数
     int newInterval;        // 复习后的间隔天数（SM-2 算出来的）
     int oldMastery;         // 复习前的掌握度
